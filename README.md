@@ -138,6 +138,5 @@ See [LICENSE](LICENSE) for details.
 
 - [XCSP3 Official Website](http://xcsp.org/)
 - [PyCSP3 Python Modeling Library](http://pycsp.org/)
-- [Constraint Programming Community](https://csplib.org/)
 
 ---
