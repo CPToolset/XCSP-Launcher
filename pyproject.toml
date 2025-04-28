@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=67", "wheel", "pyinstaller", "build"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xcsp"
+version = "0.1.0"
+description = "A unified launcher for XCSP solver"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "LGPLv3+" }
+authors = [
+    { name = "Thibault Falque", email = "falque@cril.fr" },
+    { name = "Romain Wallon", email = "wallon@cril.fr" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+    "Operating System :: OS Independent",
+]
+keywords = ["XCSP", "solver", "constraint-programming", "launcher"]
+
+dependencies = [
+    "loguru",
+    "tqdm",
+    "platformdirs",
+    "pyfiglet",
+    "GitPython",
+    "PyYAML"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/crillab/xcsplauncher"
+"Source" = "https://github.com/crillab/xcsplauncher"
+
+[project.optional-dependencies]
+test = [
+    "pytest"
+]
+docs = [
+    "sphinx>=5.3.0",
+    "sphinx_rtd_theme>=2.0.0",
+    "myst_parser",
+    "sphinx-automodapi",
+    "readthedocs-sphinx-search>=0.3.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["xcsp"]
+
+[tool.setuptools.package-data]
+"xcsp" = ["*.yaml", "*.xsc.yaml"]
+
+[tool.pyinstaller]
+name = "xcsp"
+onefile = true
+paths = ["."]
+hiddenimports = ["xcsp"]
+console = true
+script = "bin/main"
+
+# Répertoire où récupérer les fichiers annexes
+datas = [
+    "xcsp/*.yaml",
+    "xcsp/*.xsc.yaml",
+]
+
+[tool.build]
+# informations additionnelles pour les paquets
+deb = { maintainer = "Thibault Falque", vendor = "University of Luxembourg" }
+snap = { confinement = "strict", grade = "stable" }
+chocolatey = { title = "XCSP Launcher", owner = "Thibault Falque" }
+homebrew = { tap = "crillab/homebrew-xcsplauncher", repo = "https://github.com/crillab/homebrew-xcsplauncher" }

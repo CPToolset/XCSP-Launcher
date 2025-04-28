@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>xcsp-launcher</id>
+    <version>__VERSION__</version>
+    <authors>CPToolset Team</authors>
+    <owners>University of Luxembourg, Univ Artois & CNRS</owners>
+    <description>A unified launcher for XCSP3 solvers</description>
+    <summary>A CLI tool to manage and launch XCSP3 solvers easily.</summary>
+    <licenseUrl>https://www.gnu.org/licenses/lgpl-3.0.html</licenseUrl>
+    <projectUrl>https://github.com/CPToolset/XCSP-Launcher</projectUrl>
+    <tags>xcsp xcsp3 constraint-programming cop launcher</tags>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+  </metadata>
+  <files>
+    <file src="tools\\xcsp.exe" target="tools\\xcsp.exe" />
+    <file src="tools\\chocolateyInstall.ps1" target="tools\\chocolateyInstall.ps1" />
+  </files>
+</package>
