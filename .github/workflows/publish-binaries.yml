@@ -40,21 +40,18 @@ jobs:
           fi
 
       - name: Build binary
-        run: pyinstaller --onefile bin/main.py --name xcsp
+        run: make pyinstaller
 
       - name: Generate snapcraft.yaml (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sed "s/__VERSION__/${GITHUB_REF_NAME#v}/g" snap/snapcraft.yaml.template > snap/snapcraft.yaml
-          snapcraft
+          make snap
           snapcraft login --with ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
           snapcraft push *.snap
       - name: Create .deb package (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mkdir -p build-deb/usr/local/bin
-          cp dist/xcsp build-deb/usr/local/bin/xcsp
-          fpm -s dir -t deb -n xcsp-launcher -v ${GITHUB_REF_NAME#v} --prefix=/ -C build-deb .
+          make deb
 
       - name: Create Chocolatey package (Windows only)
         if: matrix.os == 'windows-latest'
@@ -68,31 +65,19 @@ jobs:
           $nuspec | Set-Content chocolatey/xcsp-launcher.nuspec
           choco pack chocolatey/xcsp-launcher.nuspec
           choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source https://push.chocolatey.org/
-#      - name: Create Homebrew Formula (macOS only)
-#        if: matrix.os == 'macos-latest'
-#        run: |
-#          mkdir -p brew
-#          echo "class XcspLauncher < Formula
-#  desc \"XCSP3 Solver Launcher\"
-#  homepage \"https://github.com/CPToolset/xcsp-launcher\"
-#  url \"https://github.com/CPToolset/xcsp-launcher/releases/download/${GITHUB_REF_NAME}/xcsp-macos\"
-#  version \"${GITHUB_REF_NAME#v}\"
-#  sha256 \"$(shasum -a 256 dist/xcsp | awk '{print $1}')\"
-#
-#  def install
-#    bin.install \"xcsp-macos\" => \"xcsp\"
-#  end
-#end
-#" > brew/xcsp-launcher.rb
-
+      - name: Create Homebrew Formula (macOS only)
+        if: matrix.os == 'macos-latest'
+        run: |
+          make brew
+          make publish-brew
       - name: Upload binaries to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/xcsp*
+            dist/xcsp* 
             *.deb
             *.snap
             chocolatey/*.nupkg
-            brew/*.rb
+            *.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
