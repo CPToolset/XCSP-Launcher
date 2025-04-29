@@ -15,5 +15,6 @@
   <files>
     <file src="tools\\xcsp.exe" target="tools\\xcsp.exe" />
     <file src="tools\\chocolateyInstall.ps1" target="tools\\chocolateyInstall.ps1" />
+    <file src="tools\xcsp3-solutionChecker-2.5.jar" target="tools\xcsp3-solutionChecker-2.5.jar" />
   </files>
 </package>

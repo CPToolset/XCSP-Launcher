@@ -1,13 +1,14 @@
 class Xcsp < Formula
   desc "Unified launcher for XCSP3 solvers"
-  homepage "https://github.com/crillab/xcsplauncher"
-  url "https://github.com/crillab/xcsplauncher/releases/download/v0.1.0/xcsp-macos" # <-- URL vers ton binaire macOS
-  sha256 "YOUR_SHA256_SUM_HERE"
+  homepage "https://github.com/CPToolset/xcsp-launcher"
+  url "__URL__"
+  sha256 "__SHASUM__"
   license "LGPL-3.0-or-later"
 
   def install
     bin.install "xcsp-macos" => "xcsp"
-    share.install "configs" => "xcsp/configs"
+    share.install "configs" => "xcsp-launcher/configs"
+    share.install "xcsp/tools/xcsp3-solutionChecker-2.5.jar" => "xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar"
   end
 
   def post_install

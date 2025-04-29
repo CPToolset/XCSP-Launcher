@@ -1,0 +1,27 @@
+name: xcsp-launcher
+base: core22
+version: '0.1.0'
+summary: A unified launcher for XCSP3 solvers
+description: |
+  XCSP Launcher is a CLI tool to manage, compile, and solve XCSP3 models easily.
+
+grade: stable
+confinement: strict
+
+apps:
+  xcsp:
+    command: bin/xcsp
+    plugs: [home, network]
+
+parts:
+  xcsp:
+    plugin: nil  # pas dump
+    source: .
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/bin
+      mkdir -p $CRAFT_PART_INSTALL/share/xcsp-launcher/tools
+      mkdir -p $CRAFT_PART_INSTALL/share/xcsp-launcher/configs
+
+      cp dist/xcsp $CRAFT_PART_INSTALL/bin/xcsp
+      cp xcsp/tools/xcsp3-solutionChecker-2.5.jar $CRAFT_PART_INSTALL/share/xcsp-launcher/tools/
+      cp -r configs/*.solver.yaml $CRAFT_PART_INSTALL/share/xcsp-launcher/configs/
