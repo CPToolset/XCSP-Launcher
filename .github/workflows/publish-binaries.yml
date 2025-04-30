@@ -32,29 +32,22 @@ jobs:
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             sudo apt-get update
             sudo apt-get install -y ruby ruby-dev build-essential fpm snapcraft
-            gem install --no-document fpm
+            sudo gem install --no-document fpm
           fi
+          
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            choco install chocolatey --yes
-          fi
-          if [[ "${{ runner.os }}" == "macOS" ]]; then
-            brew install fpm
+            choco install make --yes
           fi
 
       - name: Build binary
         run: make pyinstaller
 
-      - name: Generate snapcraft.yaml (Linux only)
+      - name: Generate snapcraft.yaml, snap and deb package (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          make snap
+          make package
           snapcraft login --with ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
           snapcraft push *.snap
-      - name: Create .deb package (Linux only)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          make deb
-
       - name: Create Chocolatey package (Windows only)
         if: matrix.os == 'windows-latest'
         shell: pwsh

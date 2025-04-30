@@ -47,7 +47,7 @@ endif
 # Création du .deb avec fpm
 deb: pyinstaller
 	echo ${VERSION}
-	gem install --no-document fpm || true
+	sudo gem install --no-document fpm || true
 	mkdir -p package/usr/local/bin
 	mkdir -p package/usr/share/$(PKG_NAME)/configs
 	mkdir -p package/usr/share/$(PKG_NAME)/tools
