@@ -4,6 +4,8 @@
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
 [![Build](https://img.shields.io/github/actions/workflow/status/CPToolset/xcsp-launcher/build.yml?branch=main)](https://github.com/CPToolset/xcsp-launcher/actions)
 
+[![Installer à partir du Snap Store](https://snapcraft.io/fr/dark/install.svg)](https://snapcraft.io/xcsp-launcher)
+
 ---
 
 **XCSP-Launcher** is a unified tool to **install**, **build**, and **execute** solvers supporting the [XCSP3](http://xcsp.org/) format.
