@@ -12,8 +12,8 @@ from platformdirs import user_cache_dir, user_config_dir, user_data_dir
 
 from xcsp import __title__
 
-def get_log_dir() -> Path:
-    """Return the directory where log files are stored."""
+def get_cache_dir() -> Path:
+    """Return the directory where cache files are stored."""
     return Path(user_cache_dir(__title__, __title__))
 
 def get_solver_install_dir() -> Path:
@@ -75,5 +75,5 @@ class ChangeDirectory:
         os.chdir(self.saved_path)
 
 # Ensure important directories exist at startup
-for path in [get_log_dir(), get_solver_install_dir(), get_solver_config_dir(), get_user_preferences_dir()]:
+for path in [get_cache_dir(), get_solver_install_dir(), get_solver_config_dir(), get_user_preferences_dir()]:
     path.mkdir(parents=True, exist_ok=True)
