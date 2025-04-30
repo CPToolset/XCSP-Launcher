@@ -8,7 +8,7 @@ It supports fallback mechanisms and ensures the correct configuration is used du
 from pathlib import Path
 from loguru import logger
 
-from xcsp.utils.paths import get_system_config_dir
+from xcsp.utils.paths import get_system_config_dir, get_solver_config_dir
 
 # Default list of acceptable configuration file extensions
 DEFAULT_EXT = [".xsc.yaml", ".yaml", ".xsc", ".solver.yaml", ".solver"]
@@ -48,12 +48,30 @@ def find_system_config(solver_name: str) -> Path | None:
     logger.info("No system configuration file found.")
     return None
 
+def find_user_config(solver_name: str) -> Path | None:
+    """Search for a configuration file in the user installed configurations.
+
+    Args:
+        solver_name (str): Name of the solver to match configuration files.
+
+    Returns:
+        Path | None: Path to the system configuration file if found, otherwise None.
+    """
+    user_path = get_solver_config_dir() / f"{solver_name.lower()}.xsc.yaml"
+    logger.info(f"Searching for a user configuration file in {get_solver_config_dir()}...")
+    if user_path.exists():
+        logger.success(f"User configuration file found: {user_path}")
+        return user_path
+    logger.info("No user configuration file found.")
+    return None
+
 def resolve_config(clone_path: Path, solver_name: str) -> Path | None:
     """Resolve the best available configuration file for a solver.
 
     The method tries, in order:
     1. To find a local configuration file in the cloned repository.
     2. To find a system-wide installed configuration file.
+    3. To find a user installed configuration file.
 
     Args:
         clone_path (Path): Path to the cloned repository.
@@ -71,8 +89,13 @@ def resolve_config(clone_path: Path, solver_name: str) -> Path | None:
     if config:
         return config
 
+    config = find_user_config(solver_name)
+    if config:
+        return config
+
+
     logger.warning(
         f"No configuration file found for solver '{solver_name}'. "
-        "It is highly recommended to provide a solver configuration (.xsc.yaml) file for reproducibility."
+        f"It is highly recommended to provide a solver configuration (.xsc.yaml) file in the git repository or in {get_system_config_dir()}."
     )
     return None
