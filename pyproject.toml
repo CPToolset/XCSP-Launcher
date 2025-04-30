@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xcsp"
-version = "0.1.0-alpha"
+version = "0.1.0-a0"
 description = "A unified launcher for XCSP solver"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -57,3 +57,17 @@ where = ["xcsp"]
 [tool.setuptools.package-data]
 "xcsp" = ["*.yaml", "*.xsc.yaml"]
 
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
+version_files = [
+    "pyproject.toml",
+    "xcsp/__init__.py"
+]
+
+[tool.commitizen.hooks]
+post_bump = "python .packaging/update_metadata.py $new_version"
