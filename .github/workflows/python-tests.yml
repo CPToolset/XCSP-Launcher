@@ -17,6 +17,7 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pytest-xdist
           pip install psutil
+          pip install . 
           make deb
           sudo dpkg -i xcsp-launcher*.deb
           xcsp --bootstrap
