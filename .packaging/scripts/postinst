@@ -1,7 +1,0 @@
-#!/bin/sh
-set -e
-
-echo "Running post-installation script for XCSP Launcher..."
-/usr/local/bin/xcsp --bootstrap || true
-
-exit 0

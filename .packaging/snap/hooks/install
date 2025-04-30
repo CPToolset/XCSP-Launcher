@@ -1,4 +1,0 @@
-#!/bin/sh
-
-echo "Running install hook for Snap package XCSP Launcher..."
-xcsp --bootstrap || true

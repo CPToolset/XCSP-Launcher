@@ -13,4 +13,4 @@ Copy-Item $exePath -Destination $targetDir -Force
 Copy-Item $packageDir\configs -Destination $targetDir\configs -Recurse -Force
 
 # Bootstrap solveurs
-Start-Process -FilePath "$targetDir\\xcsp.exe" -ArgumentList "--bootstrap" -Wait -NoNewWindow
+#Start-Process -FilePath "$targetDir\\xcsp.exe" -ArgumentList "--bootstrap" -Wait -NoNewWindow

@@ -11,9 +11,9 @@ class Xcsp < Formula
     share.install "xcsp/tools/xcsp3-solutionChecker-2.5.jar" => "xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar"
   end
 
-  def post_install
-    system "#{bin}/xcsp", "--bootstrap"
-  end
+#  def post_install
+#    system "#{bin}/xcsp", "--bootstrap"
+#  end
 
   test do
     system "#{bin}/xcsp", "--help"

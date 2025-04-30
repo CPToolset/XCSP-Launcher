@@ -54,15 +54,15 @@ deb: pyinstaller
 	cp $(DIST_DIR)/$(BIN_NAME) package/usr/local/bin/
 	cp -r configs/* package/usr/share/$(PKG_NAME)/configs/
 	cp xcsp/tools/xcsp3-solutionChecker-2.5.jar package/usr/share/$(PKG_NAME)/tools/xcsp3-solutionChecker-2.5.jar
-	chmod +x $(PACKAGING_DIR)/scripts/postinst
-	cp $(PACKAGING_DIR)/scripts/postinst package/postinst
+#	chmod +x $(PACKAGING_DIR)/scripts/postinst
+#	cp $(PACKAGING_DIR)/scripts/postinst package/postinst
 	cd package && fpm -s dir -t deb -n $(PKG_NAME) -v $(VERSION:v%=%)  \
 	--description ${DESCRIPTION} \
 	--maintainer ${MAINTAINER} \
 	--license ${LICENSE} \
 	--vendor ${VENDOR} \
 	--url ${URL} \
-	--prefix=/ --after-install postinst \
+	--prefix=/ \
 	./usr/local/bin/$(BIN_NAME) ./usr/share/$(PKG_NAME)/configs ./usr/share/$(PKG_NAME)/tools
 	cp package/*.deb .
 	rm -rf package
