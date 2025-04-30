@@ -21,6 +21,7 @@ jobs:
           make deb
           sudo dpkg -i xcsp-launcher*.deb
           ls
+          python3 -c "import pathlib; print(' '.join(f'--hidden-import={p.as_posix().replace('/', '.').replace('.py', '')}' for p in pathlib.Path('xcsp').rglob('*.py') if '__init__' not in p.name))"
           xcsp --bootstrap
       - name: Test with pytest
         run: |
