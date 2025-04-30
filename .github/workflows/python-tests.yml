@@ -20,6 +20,7 @@ jobs:
           pip install . 
           make deb
           sudo dpkg -i xcsp-launcher*.deb
+          ls
           xcsp --bootstrap
       - name: Test with pytest
         run: |
