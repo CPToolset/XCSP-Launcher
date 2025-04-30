@@ -26,14 +26,11 @@ build:
 	python3 -m pip install pyinstaller build twine
 	python3 -m build
 
-print-hidden-imports:
-	@echo $(HIDDEN_IMPORTS)
-
 pyinstaller: build
 	pyinstaller --onefile --name $(BIN_NAME) --paths=. $(HIDDEN_IMPORTS) ${SRC} $(COLLECT_ALL)
 
 # Création du .deb avec fpm
-deb: pyinstaller
+deb:
 	echo ${VERSION}
 	sudo gem install --no-document fpm || true
 	mkdir -p package/usr/local/bin
@@ -88,13 +85,12 @@ publish-brew: brew
 	rm -rf brew-tap
 
 # Création du snap (suppose que snapcraft est installé)
-snap: pyinstaller
-	sed "s/__VERSION__/$(VERSION:v%=%)/g" snap/local/snapcraft.yaml.template > snap/snapcraft.yaml
-	cd $(PACKAGING_DIR)/snap && snapcraft
+snap:
+	snapcraft
 
 # Création du package Chocolatey
 choco: pyinstaller
-	cd $(PACKAGING_DIR)/chocolatey && choco pack
+	choco pack
 
 # Nettoyage
 clean:
