@@ -13,11 +13,12 @@ from pathlib import Path
 import psutil
 from loguru import logger
 
-from xcsp.utils.paths import ChangeDirectory, get_log_dir
+from xcsp.utils.paths import ChangeDirectory, get_cache_dir
+from xcsp.utils.placeholder import replace_placeholder, replace_solver_dir
 
 # Mapping of detected build configuration files to standard build commands
 MAP_FILE_BUILD_COMMANDS = {
-    "build.gradle": ["./gradlew build", "gradle build"],
+    "build.gradle": ["./gradlew build -x test", "gradle build -x test"],
     "pom.xml": ["mvn package", "mvn install"],
     "CMakeLists.txt": ["cmake . && make", "cmake .. && make"],
     "Makefile": ["make"],
@@ -99,7 +100,7 @@ class AutoBuildStrategy(BuildStrategy):
 
     def _internal_build(self) -> bool:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_path = Path(get_log_dir()) / f"solver_build_{timestamp}.log"
+        log_path = Path(get_cache_dir()) / f"solver_build_{timestamp}.log"
         return try_build_from_file(self._config_strategy.builder_file(), log_path)
 
 class ManualBuildStrategy(BuildStrategy):
@@ -110,42 +111,45 @@ class ManualBuildStrategy(BuildStrategy):
 
     def _internal_build(self) -> bool:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_path = Path(get_log_dir()) / f"solver_build_{timestamp}.log"
+        log_path = Path(get_cache_dir()) / f"solver_build_{timestamp}.log"
         command = self._config.get("build", {}).get("build_command")
 
         if not command:
             logger.error("No manual build command specified in configuration.")
             return False
-
-        logger.info(f"Attempting manual build with command: {command}")
-        log_path.parent.mkdir(parents=True, exist_ok=True)
         success = False
-
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(command, str):
+            command = [command]
         with open(log_path, "a") as log_file:
-            log_file.write(f"\n--- Trying manual build command: {command} ---\n")
-            log_file.flush()
-
-            try:
-                process = psutil.Popen(
-                    command,
-                    shell=True,
-                    cwd=self._path_solver,
-                    stdout=log_file,
-                    stderr=subprocess.STDOUT,
-                    text=True,
-                    bufsize=1
-                )
-                returncode = process.wait()
-                if returncode == 0:
-                    logger.success(f"Manual build succeeded with command: {command}")
-                    success = True
-                    return True
-                else:
-                    logger.warning(f"Manual build failed with command: {command} (exit code {returncode})")
-
-            except Exception as e:
-                logger.exception(f"Exception occurred during manual build: {e}")
-
-        if not success:
-            logger.error("Manual build failed after all attempts.")
+            log_file.write(f"\n--- Trying manual build ---\n")
+            logger.info(f"Trying manual build")
+            for index,c in enumerate(command):
+                c = replace_solver_dir(replace_placeholder(c), str(self._path_solver))
+                logger.info(f"Step {index+1}/{len(command)} with command : {c} \n")
+                log_file.write(f"Step {index+1}/{len(command)} with command : {c} \n")
+                log_file.flush()
+                try:
+                    process = psutil.Popen(
+                        c,
+                        shell=True,
+                        cwd=self._path_solver,
+                        stdout=log_file,
+                        stderr=subprocess.STDOUT,
+                        text=True,
+                        bufsize=1
+                    )
+                    returncode = process.wait()
+                    if returncode == 0:
+                        logger.success(f"Step {index+1} succeeded : {c}")
+                        success = True
+                    else:
+                        logger.warning(f"Step {index+1}/{len(command)} failed : {c} (exit code {returncode})")
+                        success = False
+                        break
+                except Exception as e:
+                    logger.exception(f"Exception occurred during manual build: {e}")
+                    success = False
+            if not success:
+                logger.error("Manual build failed after all attempts.")
         return success
