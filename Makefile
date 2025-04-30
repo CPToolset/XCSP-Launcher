@@ -30,7 +30,7 @@ pyinstaller: build
 	pyinstaller --onefile --name $(BIN_NAME) --paths=. $(HIDDEN_IMPORTS) ${SRC} $(COLLECT_ALL)
 
 # Création du .deb avec fpm
-deb:
+deb: pyinstaller
 	echo ${VERSION}
 	sudo gem install --no-document fpm || true
 	mkdir -p package/usr/local/bin
@@ -85,7 +85,7 @@ publish-brew: brew
 	rm -rf brew-tap
 
 # Création du snap (suppose que snapcraft est installé)
-snap:
+snap: pyinstaller
 	snapcraft
 
 # Création du package Chocolatey
