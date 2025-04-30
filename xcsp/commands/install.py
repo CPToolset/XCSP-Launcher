@@ -9,6 +9,7 @@ import enum
 import os
 import shutil
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from pathlib import Path
 import yaml
 from git import Repo
@@ -17,6 +18,8 @@ from timeit import default_timer as timer
 
 from xcsp.builder.build import AutoBuildStrategy, ManualBuildStrategy
 from xcsp.builder.check import check_available_builder_for_language, MAP_FILE_LANGUAGE, MAP_LANGUAGE_FILES, MAP_BUILDER
+from xcsp.utils.placeholder import replace_placeholder, replace_core_placeholder
+from xcsp.solver.cache import CACHE, Cache
 from xcsp.solver.resolver import resolve_config
 from xcsp.utils.paths import get_solver_install_dir, ChangeDirectory, get_solver_bin_dir
 from xcsp.utils.log import unknown_command
@@ -65,7 +68,7 @@ class NoConfigFileStrategy(ConfigStrategy):
 
     def versions(self):
         """Yield a single version 'latest' based on the current commit hash."""
-        yield {"version": "latest", "git_tag": self._repo.head.object.hexsha}
+        yield {"version": "latest", "git_tag": self._repo.head.object.hexsha, "alias":[]}
 
     def detect_language(self):
         """Attempt to detect the language by scanning known build files."""
@@ -109,33 +112,63 @@ class ConfigFileStrategy(ConfigStrategy):
             yield v
 
 
+def build_cmd(config, bin_executable):
+    template = config["command"]["template"]
+    prefix = replace_placeholder(config["command"]["prefix"]) + " " if config["command"].get("prefix") else ''
+    options = config["command"]["always_include_options"]
+    core_cmd = replace_core_placeholder(template, bin_executable, options)
+    cmd = f"{prefix}{core_cmd}"
+    return cmd
+
+
 class Installer:
     """Main class responsible for installing a solver from a repository."""
 
-    def __init__(self, url: str, solver_name: str, id: str):
+    def __init__(self, url: str, solver_name: str, id: str, config=None):
         self._url = url
         self._solver = solver_name
         self._id = id
         self._path_solver = None
         self._start_time = timer()
         self._repo = None
-        self._config = None
+        self._config = config
         self._config_strategy = None
         self._mode_build_strategy = None
 
     def _init(self):
         """Initialize the solver installation directory."""
         self._path_solver = Path(get_solver_install_dir()) / self._id
-        os.makedirs(self._path_solver, exist_ok=False)
+        #os.makedirs(self._path_solver, exist_ok=True)
+
+        if not self._id in CACHE:
+            CACHE[self._id] = {
+                "path_solver": str(self._path_solver.absolute()),
+                "name_solver": self._solver,
+                "id_solver": self._id,
+                "versions": defaultdict(dict),
+            }
+
+    def _init_repo(self):
+        self._repo = Repo(self._url)
 
     def _clone(self):
         """Clone the solver repository."""
         logger.info(f"Cloning the solver from {self._url} into {self._path_solver}")
+        if os.path.exists(self._path_solver):
+            self._repo = Repo(self._path_solver)
+            logger.info(
+                f"Repository not cloned, path '{self._path_solver}' already exists. {timer() - self._start_time:.2f} seconds.")
+            return
         self._repo = Repo.clone_from(self._url, self._path_solver)
         logger.info(f"Repository cloned in {timer() - self._start_time:.2f} seconds.")
 
     def _resolve_config(self):
         """Resolve and load the solver configuration if available."""
+
+        if self._config is not None:
+            self._init_strategies_with_config()
+            return
+
         config_file = resolve_config(self._path_solver, self._solver)
 
         if config_file is None:
@@ -145,47 +178,82 @@ class Installer:
 
         with open(config_file, "r") as f:
             self._config = yaml.safe_load(f)
-            self._config_strategy = ConfigFileStrategy(self._path_solver, self._config)
-            if self._config.get("mode", "manual") == "auto":
-                self._mode_build_strategy = AutoBuildStrategy(self._path_solver, self._config_strategy)
-            else:
-                self._mode_build_strategy = ManualBuildStrategy(self._path_solver, self._config_strategy, self._config)
+            self._init_strategies_with_config()
+
+    def _init_strategies_with_config(self):
+        self._config_strategy = ConfigFileStrategy(self._path_solver, self._config)
+        if self._config.get("mode", "manual") == "auto":
+            self._mode_build_strategy = AutoBuildStrategy(self._path_solver, self._config_strategy)
+        else:
+            self._mode_build_strategy = ManualBuildStrategy(self._path_solver, self._config_strategy, self._config)
 
     def _check(self):
         """Check if the required build tools are available."""
         if not self._config_strategy.check():
             language = self._config_strategy.language()
-            logger.error(f"None of the builders are available for language '{language}': {', '.join(MAP_BUILDER.get(language))}")
+            logger.error(
+                f"None of the builders are available for language '{language}': {', '.join(MAP_BUILDER.get(language))}")
             raise ValueError(
                 f"No available builders for the detected language '{language}'.")
 
     def install(self):
         """Main method to install the solver."""
         self._init()
-        self._clone()
+        self._clone() if self._url.startswith("http") else self._init_repo()
+        self._pull()
         self._resolve_config()
+        self._config_strategy.detect_language()
         self._check()
 
+        build_start = timer()
+        original_ref = self._repo.active_branch.name if not self._repo.head.is_detached else self._repo.head.object.hexsha
         with ChangeDirectory(self._path_solver):
             for v in self._config_strategy.versions():
-                logger.info(f"Checking out version '{v['git_tag']}'")
-                self._repo.git.checkout(v["git_tag"])
+                try:
+                    logger.info(f"Checking out version '{v['git_tag']}'")
+                    self._repo.git.checkout(v["git_tag"])
+                    need_compile = v.get("executable") is not None and not (Path(self._path_solver)/v.get('executable')).exists()
 
-                if not self._mode_build_strategy.build():
-                    logger.error(f"Build failed for version '{v['version']}'. Installation aborted.")
-                    break
+                    if not self._mode_build_strategy.build() and need_compile:
+                        logger.error(f"Build failed for version '{v['version']}'. Installation aborted.")
+                        break
 
-                bin_dir = get_solver_bin_dir(self._solver, v['version'])
-                os.makedirs(bin_dir, exist_ok=True)
+                    bin_dir = get_solver_bin_dir(self._id, f"{v['version']}-{v['git_tag']}")
+                    os.makedirs(bin_dir, exist_ok=True)
 
-                if v.get("executable") is None:
-                    logger.warning(
-                        f"Version '{v['version']}' was built, but no executable was specified. "
-                        f"Please manually copy your binaries into {bin_dir}.")
-                    continue
+                    if v.get("executable") is None:
+                        logger.warning(
+                            f"Version '{v['version']}' was built, but no executable was specified. "
+                            f"Please manually copy your binaries into {bin_dir}.")
+                        continue
+                    executable_path = Path(v['executable'])
+                    result_path = shutil.copy(Path(self._path_solver) / v["executable"], bin_dir / executable_path.name)
+                    logger.success(f"Executable for version '{v['version']}' successfully copied to {result_path}.")
+                    if self._config is not None and self._config.get("command") is not None:
+                        CACHE[self._id]["versions"][v['version']] = {
+                            "options": self._config["command"]["options"],
+                            "cmd": build_cmd(self._config, bin_dir / executable_path.name),
+                            "alias": v.get("alias",list())
+                        }
 
-                result_path = shutil.copy(os.path.join(self._path_solver, v["executable"]), bin_dir)
-                logger.success(f"Executable for version '{v['version']}' successfully copied to {result_path}.")
+                except OSError as e:
+                    logger.error(
+                        f"An error occurred when building the version '{v['version']}' of solver {self._solver}")
+                    logger.exception(e)
+                finally:
+                    logger.info(f"Restoring original Git reference: {original_ref}")
+                    self._repo.git.checkout(original_ref)
+        logger.info(f"Building completed in {timer() - build_start:.2f} seconds.")
+        logger.info(f"Generating cache of solver...")
+        Cache.save_cache(CACHE)
+        logger.info(f"Installation completed in {timer() - self._start_time:.2f} seconds.")
+
+    def _pull(self):
+        pull_start = timer()
+        logger.info(f"Pulling solver...")
+        o = self._repo.remotes.origin
+        o.pull()
+        logger.info(f"Pulling finished {pull_start - self._start_time:.2f} seconds.")
 
 
 def resolve_url(repo, source):
@@ -197,23 +265,41 @@ def fill_parser(parser):
     """Add the 'install' subcommand to the parser."""
     parser_install = parser.add_parser("install", aliases=["i"],
                                        help="Subcommand to install a solver from a repository.")
-    parser_install.add_argument("--id", help="Unique ID for the solver.", type=str, required=True)
-    parser_install.add_argument("--name", help="Human-readable name of the solver.", type=str, required=True)
-    parser_install.add_argument("--url", help="Direct URL to the repository (alternative to --repo).", required=False)
-    parser_install.add_argument("--repo", help="Repository in the form 'namespace/repo' (alternative to --url).", required=False)
-    parser_install.add_argument("--source", help="Hosting service for the repository.", choices=[e for e in RepoSource], default=RepoSource.GITHUB, type=RepoSource)
+    parser_install.add_argument("--id", help="Unique ID for the solver.", type=str, required=False, default=None)
+    parser_install.add_argument("--name", help="Human-readable name of the solver.", type=str, required=False,
+                                default=None)
+    parser_install.add_argument("-c","--config", help="A path to a config file.", type=str, required=False, default=None)
+    parser_install.add_argument("--url", help="Direct URL to the repository (alternative to --repo).", required=False,
+                                default=None)
+    parser_install.add_argument("--repo", help="Repository in the form 'namespace/repo' (alternative to --url).",
+                                required=False, default=None)
+    parser_install.add_argument("--source", help="Hosting service for the repository.", choices=[e for e in RepoSource],
+                                default=RepoSource.GITHUB, type=RepoSource)
 
 
 def install(args):
+    logger.debug(args)
     """Execute the installation process based on parsed arguments."""
-    if args.url is None and args.repo is None:
-        raise ValueError("Both --url and --repo cannot be None simultaneously.")
+    if args['url'] is None and args['repo'] is None and args['config'] is None:
+        raise ValueError("--url, --repo, --config cannot be None simultaneously.")
 
-    url = args.url
+    at_most_one_true = [args[k] for k in ['url', 'repo', 'config'] if args[k] is not None]
+    if len(at_most_one_true) > 1:
+        raise ValueError("Can't be more one of these option specified : '--url','--repo','--config'")
+    name = args['name']
+    id_s = args['id']
+    url = args['url']
+    config = None
+    if args['config'] is not None and os.path.exists(args['config']):
+        with open(args['config'], 'r') as f:
+            config = yaml.safe_load(f)
+            name = config['name']
+            id_s = config['id']
+            url = config.get('git', None) or config.get('path', None)
     if url is None:
-        url = resolve_url(args.repo, args.source)
+        url = resolve_url(args['repo'], args['source'])
 
-    installer = Installer(url, args.name, args.id)
+    installer = Installer(url, name, id_s, config=config)
     installer.install()
 
 
