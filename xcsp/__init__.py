@@ -9,7 +9,7 @@ __all__ = [
     '__copyright__',
 ]
 
-__title__ = 'xcsp'
+__title__ = 'xcsp-launcher'
 __summary__ = 'A unified launcher for XCSP solveur'
 __keywords__ = ''
 __uri__ = 'https://github.com/crillab/xcsplauncher'
