@@ -1,10 +1,6 @@
 name: Publish to PyPI
 
 on:
-  workflow_run:
-    workflows: [Python Tests]
-    types:
-      - completed
   push:
     tags:
       - "v*"

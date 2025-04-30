@@ -1,10 +1,6 @@
 name: Build and Release Binaries
 
 on:
-  workflow_run:
-    workflows: [Python Tests]
-    types:
-      - completed
   push:
     tags:
       - "v*"
@@ -36,7 +32,7 @@ jobs:
           
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             sudo apt-get update
-            sudo apt-get install -y ruby ruby-dev build-essential fpm snapcraft
+            sudo apt-get install -y ruby ruby-dev build-essential
             sudo gem install --no-document fpm
           fi
           
