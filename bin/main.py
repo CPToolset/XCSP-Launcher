@@ -2,16 +2,23 @@ import importlib
 import pkgutil
 import sys
 from argparse import ArgumentParser
+from pathlib import Path
 from typing import Tuple, Dict, Any
-
-import loguru
+from timeit import default_timer as timer
+from loguru import logger
 from pyfiglet import Figlet
+from tqdm import tqdm
 
 import xcsp
+from xcsp.utils.bootstrap import check_bootstrap
+from xcsp.utils.log import init_log
+from xcsp.utils.paths import get_system_config_dir, get_solver_install_dir
 
 ALIAS_COMMANDS = {
-    "i":"install"
+    "i": "install",
+    "s": "solver"
 }
+
 
 #############
 # FUNCTIONS #
@@ -30,18 +37,35 @@ def discover_and_fill_parsers(package_name, subparser):
             # Appelle la méthode fill_parser avec subparser comme argument
             module.fill_parser(subparser)
 
+
+def bootstrap(argument_parser):
+    system_path = get_system_config_dir()
+    start_time = timer()
+    logger.info(system_path)
+    for file in tqdm(list(system_path.glob(f"*.solver.yaml"))):
+        start_solver = timer()
+        logger.info(f"Installing solver {str(file)}...")
+        arguments = vars(argument_parser.parse_args(f"install -c {file.absolute()}".split()))
+        manage_subcommand(arguments)
+        logger.info(f"Finished installing solver...{(timer() - start_solver):.2f} seconds")
+    logger.info(f"Finished bootstrap command...{(timer() - start_time):.2f} seconds")
+
+
 def parse_arguments() -> Tuple[ArgumentParser, Dict[str, Any]]:
     """
     Parses the command line arguments.
 
-    :return: The parser for the arguments given to Metrics, and the arguments themselves.
+    :return: The parser for the arguments given to XCSP Launcher, and the arguments themselves.
     """
     parser = ArgumentParser(prog=xcsp.__name__, description=xcsp.__summary__, add_help=False)
 
     subparser = parser.add_subparsers(help="The commands recognized by this script.",
-                                      dest="command")
+                                      dest="subcommand")
 
     discover_and_fill_parsers("xcsp.commands", subparser)
+
+    parser.add_argument("-l", "--level", type=str,
+                        choices=["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"], default="INFO")
 
     # Registering the option used to display the help of the program.
     parser.add_argument('-h', '--help',
@@ -52,8 +76,9 @@ def parse_arguments() -> Tuple[ArgumentParser, Dict[str, Any]]:
     parser.add_argument('-v', '--version',
                         help='shows the version of XCSP launcher being executed',
                         action='store_true')
-
+    parser.add_argument('--bootstrap', help="Install default solver from system configuration.", action='store_true')
     return parser, vars(parser.parse_args())
+
 
 def print_header() -> None:
     """
@@ -81,13 +106,34 @@ def version() -> None:
     print('This program is free software: you can redistribute it and/or modify')
     print('it under the terms of the GNU Lesser General Public License.')
 
+
 ################
 # MAIN PROGRAM #
 ################
+
+
+def manage_subcommand(arguments):
+    # Executing the specified Metrics command.
+    command = arguments['subcommand']
+    try:
+        if command in ALIAS_COMMANDS:
+            command = ALIAS_COMMANDS[command]
+        module = importlib.import_module("xcsp.commands." + command.replace("-", "_"))
+        if hasattr(module, 'manage_command'):
+            module.manage_command(arguments)
+    except TypeError as e:
+        logger.error(f"Command '{command}' not found.")
+        logger.error(e)
+
+
 if __name__ == '__main__':
     # Parsing the command line arguments.
     argument_parser, args = parse_arguments()
+    init_log(args["level"])
 
+    if not args["bootstrap"]:
+        if check_bootstrap():
+            bootstrap(argument_parser)
     # If the help is asked, we display it and exit.
     if args['help']:
         display_help(argument_parser)
@@ -98,19 +144,8 @@ if __name__ == '__main__':
         version()
         sys.exit()
 
-    # Executing the specified Metrics command.
-    command = args['command']
-    if command == 'help' or command is None:
-        display_help(argument_parser)
-    elif command == 'version':
-        version()
-    else:
-        try:
-            if command in ALIAS_COMMANDS:
-                command = ALIAS_COMMANDS[command]
-            module = importlib.import_module("xcsp.commands." + command.replace("-", "_"))
-            if hasattr(module, 'manage_command'):
-                module.manage_command(args)
-        except TypeError as e:
-            loguru.logger.error(f"Command '{command}' not found.")
-            loguru.logger.error(e)
+    if args['bootstrap']:
+        bootstrap(argument_parser)
+        sys.exit()
+
+    manage_subcommand(args)
