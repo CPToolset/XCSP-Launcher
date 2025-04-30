@@ -6,10 +6,10 @@ BIN_NAME := xcsp
 SRC := bin/main.py
 
 DESCRIPTION := "A unified launcher for XCSP-compatible solvers"
-MAINTAINER := "Thibault Falque <thibault.falque@ik.me>"
+MAINTAINER := "TOOTATIS team <contact@tootatis.dev>"
 LICENSE := "LGPLv3+"
 VENDOR := "University of Luxembourg"
-URL := "https://github.com/CPToolset/xcsp-launcher"
+URL := "https://tootatis.dev"
 
 PACKAGING_DIR := .packaging
 
