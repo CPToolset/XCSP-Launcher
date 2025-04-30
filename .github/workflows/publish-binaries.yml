@@ -1,6 +1,10 @@
 name: Build and Release Binaries
 
 on:
+  workflow_run:
+    workflows: [Python Tests]
+    types:
+      - completed
   push:
     tags:
       - "v*"
