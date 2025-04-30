@@ -1,5 +1,5 @@
 # Variables
-VERSION := $(shell (git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0"))
+VERSION := $(shell (git describe --tags --abbrev=0 2>/dev/null || echo "v0.1.0-alpha"))
 DIST_DIR := dist
 PKG_NAME := xcsp-launcher
 BIN_NAME := xcsp
@@ -31,18 +31,6 @@ print-hidden-imports:
 
 pyinstaller: build
 	pyinstaller --onefile --name $(BIN_NAME) --paths=. $(HIDDEN_IMPORTS) ${SRC} $(COLLECT_ALL)
-
-package: pyinstaller
-ifeq ($(OS), Linux)
-	make deb
-	make snap
-endif
-ifeq ($(OS), Darwin)
-	make brew
-endif
-ifeq ($(OS), Windows_NT)
-	make choco
-endif
 
 # Création du .deb avec fpm
 deb: pyinstaller
