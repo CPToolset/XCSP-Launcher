@@ -56,23 +56,3 @@ where = ["xcsp"]
 [tool.setuptools.package-data]
 "xcsp" = ["*.yaml", "*.xsc.yaml"]
 
-[tool.pyinstaller]
-name = "xcsp"
-onefile = true
-paths = ["."]
-hiddenimports = ["xcsp"]
-console = true
-script = "bin/main"
-
-# Répertoire où récupérer les fichiers annexes
-datas = [
-    "xcsp/*.yaml",
-    "xcsp/*.xsc.yaml",
-]
-
-[tool.build]
-# informations additionnelles pour les paquets
-deb = { maintainer = "Thibault Falque", vendor = "University of Luxembourg" }
-snap = { confinement = "strict", grade = "stable" }
-chocolatey = { title = "XCSP Launcher", owner = "Thibault Falque" }
-homebrew = { tap = "crillab/homebrew-xcsplauncher", repo = "https://github.com/crillab/homebrew-xcsplauncher" }
