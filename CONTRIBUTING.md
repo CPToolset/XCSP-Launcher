@@ -70,19 +70,6 @@ cz commit
 
 This allows generating changelogs and managing versions automatically.
 
-To bump the version and tag a release:
-
-```bash
-cz bump
-git push && git push --tags
-```
-
-Pre-release example:
-
-```bash
-cz bump --prerelease alpha
-```
-
 ---
 
 ## 🚀 Building the project
