@@ -62,13 +62,11 @@ jobs:
       - name: Homebrew (macOS only)
         if: matrix.os == 'macos-latest'
         run: |
-          make brew
           make publish-brew
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+          prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
           files: |
             dist/*
             *.deb
