@@ -39,8 +39,6 @@ deb: pyinstaller
 	cp $(DIST_DIR)/$(BIN_NAME) package/usr/local/bin/
 	cp -r configs/* package/usr/share/$(PKG_NAME)/configs/
 	cp xcsp/tools/xcsp3-solutionChecker-2.5.jar package/usr/share/$(PKG_NAME)/tools/xcsp3-solutionChecker-2.5.jar
-#	chmod +x $(PACKAGING_DIR)/scripts/postinst
-#	cp $(PACKAGING_DIR)/scripts/postinst package/postinst
 	cd package && fpm -s dir -t deb -n $(PKG_NAME) -v $(VERSION:v%=%)  \
 	--description ${DESCRIPTION} \
 	--maintainer ${MAINTAINER} \
@@ -80,8 +78,9 @@ brew: pyinstaller
 publish-brew: brew
 	@echo "Publishing Homebrew Formula..."
 	git clone https://github.com/CPToolset/homebrew-xcsp-launcher.git brew-tap
-	cp .packaging/homebrew/xcsp.rb brew-tap/xcsp.rb
-	cd brew-tap && git add xcsp.rb && git commit -m "Update formula for version $(VERSION)" && git push
+	mkdir -p brew-tap/Formula/
+	cp .packaging/homebrew/xcsp.rb brew-tap/Formula/xcsp.rb
+	cd brew-tap && git add Formula/ && git commit -m "Update formula for version $(VERSION)" && git push
 	rm -rf brew-tap
 
 # Création du snap (suppose que snapcraft est installé)

@@ -74,5 +74,6 @@ jobs:
             *.deb
             *.snap
             chocolatey/*.nupkg
+            *macos.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
