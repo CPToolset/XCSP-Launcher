@@ -18,7 +18,7 @@ COLLECT_ALL := $(shell python3 -c "import pkg_resources; print(' '.join(f'--coll
 HIDDEN_IMPORTS := $(shell python3 -c "import pathlib; print(' '.join(f'--hidden-import={p.as_posix().replace('/', '.').replace('.py', '')}' for p in pathlib.Path('xcsp').rglob('*.py') if '__init__' not in p.name))")
 
 # Cibles principales
-all: build pyinstaller deb snap choco
+all: build pyinstaller
 
 # Compilation Python -> binaire avec PyInstaller
 build:
@@ -30,7 +30,7 @@ pyinstaller: build
 	pyinstaller --onefile --name $(BIN_NAME) --paths=. $(HIDDEN_IMPORTS) ${SRC} $(COLLECT_ALL)
 
 # Création du .deb avec fpm
-deb: pyinstaller
+deb: $(DIST_DIR)/$(BIN_NAME)
 	echo ${VERSION}
 	sudo gem install --no-document fpm || true
 	mkdir -p package/usr/local/bin
@@ -51,7 +51,7 @@ deb: pyinstaller
 	rm -rf package
 
 # Créer une Formula Homebrew à partir du tar.gz
-brew: pyinstaller
+brew: $(DIST_DIR)/$(BIN_NAME)
 	@echo "Building Homebrew formula..."
 
 	# Générer un tar.gz contenant juste l'exécutable et les configs
@@ -63,19 +63,19 @@ brew: pyinstaller
 	# Créer archive
 	tar -czvf xcsp-$(VERSION:v%=%)-macos.tar.gz -C brew_tmp .
 
-	# Calculer SHA256
-	SHA=$$(shasum -a 256 xcsp-$(VERSION:v%=%)-macos.tar.gz | awk '{print $$1}'); \
-
-	# Générer Formula
-	sed \
-	  -e "s|__URL__|https://github.com/CPToolset/xcsp-launcher/releases/download/$(VERSION)/xcsp-$(VERSION:v%=%)-macos.tar.gz|" \
-	  -e "s|__SHASUM__|$$SHA|" \
-	  .packaging/homebrew/xcsp.rb.template > .packaging/homebrew/xcsp.rb
+	{ \
+		sha256=$$(shasum -a 256 xcsp-$(VERSION:v%=%)-macos.tar.gz | awk '{print $$1}'); \
+		url="https://github.com/CPToolset/xcsp-launcher/releases/download/$(VERSION)/xcsp-$(VERSION:v%=%)-macos.tar.gz"; \
+		sed \
+			-e "s|__URL__|$$url|" \
+			-e "s|__SHASUM__|$$sha256|" \
+			.packaging/homebrew/xcsp.rb.template > .packaging/homebrew/xcsp.rb; \
+	}
 
 	# Nettoyer temporaire
 	rm -rf brew_tmp
 
-publish-brew: brew
+publish-brew: xcsp-*-macos.tar.gz
 	@echo "Publishing Homebrew Formula..."
 	git clone https://github.com/CPToolset/homebrew-xcsp-launcher.git brew-tap
 	mkdir -p brew-tap/Formula/
@@ -93,6 +93,10 @@ choco: pyinstaller
 
 # Nettoyage
 clean:
-	rm -rf build dist *.spec package *.deb *.snap
+	rm -rf build dist *.spec package *.deb *.snap *.tar.gz
+
+
+$(DIST_DIR)/$(BIN_NAME): pyinstaller
+xcsp-*-macos.tar.gz: brew
 
 .PHONY: all build deb snap choco clean
