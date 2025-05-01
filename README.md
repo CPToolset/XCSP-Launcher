@@ -2,6 +2,7 @@
 
 [![License: LGPL v3+](https://img.shields.io/badge/License-LGPL%20v3%2B-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0.html)
 [![Python 3.8+](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
+[![Documentation](https://app.readthedocs.org/projects/xcsp/badge/?version=latest)](https://xcsp-doc.tootatis.dev)
 [![Python Tests](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/tests.yml/badge.svg)](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/tests.yml)
 [![Release](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/release.yml/badge.svg)](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/release.yml)
 [![Installer à partir du Snap Store](https://snapcraft.io/fr/dark/install.svg)](https://snapcraft.io/xcsp-launcher)
