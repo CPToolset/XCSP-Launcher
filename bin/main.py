@@ -2,7 +2,6 @@ import importlib
 import pkgutil
 import sys
 from argparse import ArgumentParser
-from pathlib import Path
 from typing import Tuple, Dict, Any
 from timeit import default_timer as timer
 from loguru import logger
@@ -12,7 +11,7 @@ from tqdm import tqdm
 import xcsp
 from xcsp.utils.bootstrap import check_bootstrap
 from xcsp.utils.log import init_log
-from xcsp.utils.paths import get_system_config_dir, get_solver_install_dir
+from xcsp.utils.paths import get_system_config_dir
 
 ALIAS_COMMANDS = {
     "i": "install",
@@ -126,7 +125,7 @@ def manage_subcommand(arguments):
         logger.error(e)
 
 
-if __name__ == '__main__':
+def main():
     # Parsing the command line arguments.
     argument_parser, args = parse_arguments()
     init_log(args["level"])
@@ -149,3 +148,6 @@ if __name__ == '__main__':
         sys.exit()
 
     manage_subcommand(args)
+
+if __name__ == '__main__':
+    main()
