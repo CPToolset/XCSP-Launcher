@@ -116,7 +116,6 @@ For more information about the format of the solver-configuration please see the
 ## 🚀 Projects Using XCSP-Launcher
 
 - [`metrics`](https://github.com/crillab/metrics) — An open-source Python library to automate experimental campaigns and analyze solver performances.
-- [`xcsp-vscode`](https://github.com/CPToolset/xcsp-ide) — A VSCode extension for modeling XCSP3 instances using [PyCSP3](https://pycsp.org) and solving them with `xcsp-launcher`.
 
 ---
 
