@@ -37,7 +37,7 @@ pip install xcsp-launcher
 Or from source:
 
 ```bash
-git clone https://github.com/your_org/xcsp-launcher.git
+git clone https://github.com/CPToolset/xcsp-launcher.git
 cd xcsp-launcher
 pip install .
 ```
