@@ -37,6 +37,9 @@ class ResultStatusEnum(enum.Enum):
     UNSATISFIABLE = "UNSATISFIABLE"
     UNKNOWN = "UNKNOWN"
     OPTIMUM = "OPTIMUM FOUND"
+    TIMEOUT = "TIMEOUT"
+    ERROR = "ERROR"
+    MEMOUT = "MEMOUT"
 
 
 class Solver:
@@ -275,6 +278,11 @@ class Solver:
                     else:
                         print(line, file=self._stdout)
 
+            if keep_solver_output:
+                for line in process.stderr:
+                    line = line.rstrip()
+                    print(line, file=self._stderr)
+
             process.wait()
 
         except Exception as e:
@@ -300,12 +308,14 @@ class Solver:
             print(json.dumps(self._solutions, indent=2, cls=CustomEncoder))
         else:
             print(f"s {status.value}")
-
-        logger.info(
-            f"Resolution completed successfully. Wall-clock time: {final_wall_clock_time:.2f}s | CPU time: {final_cpu_time:.2f}s")
+        if process.returncode != 0:
+            logger.error(f"An error occurred during solver execution. Solver exit with code {process.returncode}")
+            status = ResultStatusEnum.ERROR
+        else:
+            logger.info(
+                f"Resolution completed successfully. Wall-clock time: {final_wall_clock_time:.2f}s | CPU time: {final_cpu_time:.2f}s")
 
         self._print_final_summary(status, bounds, assignments, final_wall_clock_time, final_cpu_time)
-
         return self._solutions
 
     @staticmethod
@@ -369,7 +379,12 @@ class Solver:
         Returns:
             Solver: Configured Solver instance.
         """
-        s = Solver.lookup(args.get("name"))
+
+        name = args.get("name").upper()
+        version = args.get("solver_version")
+        if "@" not in name and version is not None:
+            name = f"{name}@{version}"
+        s = Solver.lookup(name)
         s.set_seed(args.get("seed"))
         s.set_time_limit(args.get("timeout"))
         s.set_collect_intermediate_solutions(args.get("intermediate"))
@@ -406,14 +421,18 @@ class Solver:
         emoji = "❓"
         status_upper = status.value.upper()
 
-        if "SATISFIABLE" in status_upper:
+        if "SATISFIABLE" == status_upper:
             emoji = "✅"
-        elif "UNSATISFIABLE" in status_upper:
-            emoji = "❌"
-        elif "UNKNOWN" in status_upper:
+        elif "UNSATISFIABLE" == status_upper:
+            emoji = "🔺"
+        elif "UNKNOWN" == status_upper:
             emoji = "❓"
-        elif "OPTIMUM" in status_upper:
+        elif "OPTIMUM" == status_upper:
             emoji = "🏆"
+        elif "ERROR" == status_upper:
+            emoji = "❌"
+        elif "TIMEOUT" == status_upper:
+            emoji = "⌛"
         else:
             emoji = "⚡"
 
