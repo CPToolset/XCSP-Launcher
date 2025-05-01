@@ -11,7 +11,7 @@ from loguru import logger
 from xcsp.utils.paths import get_system_config_dir, get_solver_config_dir
 
 # Default list of acceptable configuration file extensions
-DEFAULT_EXT = [".xsc.yaml", ".yaml", ".xsc", ".solver.yaml", ".solver"]
+DEFAULT_EXT = [".xsc.yaml", ".xsc", ".solver.yaml", ".solver",".xsc.yml", ".solver.yml"]
 
 def find_local_config(clone_path: Path, solver_name: str) -> Path | None:
     """Search for a configuration file in the cloned solver repository.
@@ -25,6 +25,7 @@ def find_local_config(clone_path: Path, solver_name: str) -> Path | None:
     """
     logger.info(f"Searching for a local configuration file in {clone_path}...")
     for ext in DEFAULT_EXT:
+        logger.debug(f"We try to found a configuration with the extension {ext}")
         for file in clone_path.glob(f"**/{solver_name}{ext}"):
             logger.success(f"Local configuration file found: {file}")
             return file
@@ -57,11 +58,14 @@ def find_user_config(solver_name: str) -> Path | None:
     Returns:
         Path | None: Path to the system configuration file if found, otherwise None.
     """
-    user_path = get_solver_config_dir() / f"{solver_name.lower()}.xsc.yaml"
     logger.info(f"Searching for a user configuration file in {get_solver_config_dir()}...")
-    if user_path.exists():
-        logger.success(f"User configuration file found: {user_path}")
-        return user_path
+
+    for ext in DEFAULT_EXT:
+        logger.debug(f"We try to found a configuration with the extension {ext}")
+        user_path = get_solver_config_dir() / f"{solver_name.lower()}{ext}"
+        if user_path.exists():
+            logger.success(f"User configuration file found: {user_path}")
+            return user_path
     logger.info("No user configuration file found.")
     return None
 
