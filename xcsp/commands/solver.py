@@ -4,20 +4,15 @@ Module handling the 'solver' subcommand for the XCSP launcher CLI.
 This module defines and manages options for running a solver on a given instance,
 controlling output behavior, passing solver-specific options, and listing available solvers.
 """
-import argparse
+import json
 import os
-from email.policy import default
-from pathlib import Path
-
 from loguru import logger
-
-from xcsp.solver.cache import CACHE
 from xcsp.solver.solver import Solver
 from xcsp.utils.log import unknown_command
 from rich.console import Console
 from rich.table import Table
 
-def list_solvers():
+def list_solvers(args):
     table = Table(title="Solver List")
 
     table.add_column("Name", justify="center")
@@ -26,15 +21,19 @@ def list_solvers():
     table.add_column("Command Line",justify="left", )
     table.add_column("Alias",justify="left", )
 
-
     available = Solver.available_solvers()
     if len(available)==0:
         logger.info("No solver available.")
+        if args["json_output"]:
+            print(json.dumps([],))
         return
-    for k, s in available.items():
-        table.add_row(s.name, s.id, s.version, s.cmd, ','.join(s.alias))
-    console = Console(width=200)
-    console.print(table)
+    if not args["json_output"]:
+        for k, s in available.items():
+            table.add_row(s.name, s.id, s.version, s.cmd, ','.join(s.alias))
+        console = Console(width=200)
+        console.print(table)
+    else:
+        print(json.dumps([{"id":k,"version":available[k].version,"cmd":available[k].cmd} for k in available.keys()]))
 
 
 def solve(args):
@@ -47,7 +46,7 @@ def solve(args):
 def solver_cmd(args):
     """Execute the 'solver' subcommand."""
     if args["solvers"]:
-        list_solvers()
+        list_solvers(args)
         return
     if args.get("all_solutions") and args.get("num_solutions")!=-1:
         raise ValueError(
