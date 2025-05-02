@@ -62,7 +62,12 @@ jobs:
       - name: Homebrew (macOS only)
         if: matrix.os == 'macos-latest'
         run: |
-          make publish-brew
+          make brew
+          git clone --quiet https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/CPToolset/homebrew-xcsp-launcher.git brew-tap
+          mkdir -p brew-tap/Formula/
+          cp .packaging/homebrew/xcsp.rb brew-tap/Formula/xcsp.rb
+          cd brew-tap && git add Formula/ && git commit -m "Update formula for version $(VERSION)" && git push
+          rm -rf brew-tap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create GitHub Release
