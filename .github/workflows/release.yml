@@ -37,7 +37,7 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: twine upload dist/*
+        run: twine upload dist/* || true
 
       - name: Build binary with PyInstaller
         run: make pyinstaller
@@ -63,6 +63,8 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           make publish-brew
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
