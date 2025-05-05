@@ -63,13 +63,13 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           make brew
-          git clone --quiet https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/CPToolset/homebrew-xcsp-launcher.git brew-tap
+          git clone --quiet https://x-access-token:${{ secrets.XCSP_GITHUB_TOKEN }}@github.com/CPToolset/homebrew-xcsp-launcher.git brew-tap
           mkdir -p brew-tap/Formula/
           cp .packaging/homebrew/xcsp.rb brew-tap/Formula/xcsp.rb
           cd brew-tap && git add Formula/ && git commit -m "Update formula for version $(VERSION)" && git push
           rm -rf brew-tap
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.XCSP_GITHUB_TOKEN }}
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
