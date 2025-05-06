@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>xcsp-launcher</id>
-    <version>0.1.0-alpha11</version>
+    <version>0.1.0-alpha12</version>
     <authors>CPToolset Team</authors>
     <owners>University of Luxembourg, Univ Artois &amp; CNRS</owners>
     <description>A unified launcher for XCSP3 solvers</description>
@@ -13,8 +13,8 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
   </metadata>
   <files>
-    <file src="tools\\xcsp.exe" target="tools\\xcsp.exe" />
-    <file src="tools\\chocolateyInstall.ps1" target="tools\\chocolateyInstall.ps1" />
-    <file src="tools\xcsp3-solutionChecker-2.5.jar" target="tools\xcsp3-solutionChecker-2.5.jar" />
+    <file src="chocolatey\\tools\\xcsp.exe" target="tools\\xcsp.exe" />
+    <file src="chocolatey\\tools\\chocolateyInstall.ps1" target="tools\\chocolateyInstall.ps1" />
+    <file src="chocolatey\\tools\xcsp3-solutionChecker-2.5.jar" target="tools\xcsp3-solutionChecker-2.5.jar" />
   </files>
 </package>

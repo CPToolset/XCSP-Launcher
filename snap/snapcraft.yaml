@@ -1,6 +1,6 @@
 name: xcsp-launcher
 base: core22
-version: "0.1.0-alpha11"
+version: "0.1.0-alpha12"
 summary: A unified launcher for XCSP3 solvers
 description: |
   XCSP Launcher is a CLI tool to manage, compile, and solve XCSP3 models easily.
