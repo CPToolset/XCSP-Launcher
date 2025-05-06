@@ -4,7 +4,7 @@ This module defines strategies to build solver sources either automatically
 (based on detected build files) or manually (based on explicit configuration).
 It also provides utility functions to execute builds while logging their output.
 """
-
+import shlex
 import subprocess
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -112,44 +112,67 @@ class ManualBuildStrategy(BuildStrategy):
     def _internal_build(self) -> bool:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_path = Path(get_cache_dir()) / f"solver_build_{timestamp}.log"
-        command = self._config.get("build", {}).get("build_command")
+        log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        if not command:
+        logger.debug(f"Log of building in {log_path}")
+
+        build_config = self._config.get("build", {})
+        build_steps = build_config.get("build_steps")
+        build_command = build_config.get("build_command")
+
+        # 🧹 Normalisation
+        if build_steps is None and build_command:
+            if isinstance(build_command, str):
+                build_command = [build_command]
+            build_steps = [{"cmd": c} for c in build_command]
+
+        if not build_steps:
             logger.error("No manual build command specified in configuration.")
             return False
+
         success = False
-        log_path.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(command, str):
-            command = [command]
+
         with open(log_path, "a") as log_file:
             log_file.write(f"\n--- Trying manual build ---\n")
-            logger.info(f"Trying manual build")
-            for index,c in enumerate(command):
-                c = replace_solver_dir(replace_placeholder(c), str(self._path_solver))
-                logger.info(f"Step {index+1}/{len(command)} with command : {c} \n")
-                log_file.write(f"Step {index+1}/{len(command)} with command : {c} \n")
+            logger.info("Trying manual build")
+
+            for index, step in enumerate(build_steps):
+                cmd_raw = step.get("cmd")
+                if not cmd_raw:
+                    logger.warning(f"Step {index + 1} is missing 'cmd'. Skipping.")
+                    continue
+
+                cwd_raw = step.get("cwd", str(self._path_solver))
+
+                cmd_str = replace_solver_dir(replace_placeholder(cmd_raw), str(self._path_solver))
+                cwd_str = replace_solver_dir(replace_placeholder(cwd_raw), str(self._path_solver))
+                cmd = shlex.split(cmd_str)
+
+                logger.info(f"Step {index + 1}/{len(build_steps)}: {' '.join(cmd)}")
+                log_file.write(f"Step {index + 1}/{len(build_steps)}: {cmd_str} (cwd: {cwd_str})\n")
                 log_file.flush()
+
                 try:
-                    process = psutil.Popen(
-                        c,
-                        shell=True,
-                        cwd=self._path_solver,
+                    result = subprocess.run(
+                        cmd,
+                        cwd=cwd_str,
                         stdout=log_file,
                         stderr=subprocess.STDOUT,
-                        text=True,
-                        bufsize=1
+                        text=True
                     )
-                    returncode = process.wait()
-                    if returncode == 0:
-                        logger.success(f"Step {index+1} succeeded : {c}")
+                    if result.returncode == 0:
+                        logger.success(f"Step {index + 1} succeeded.")
                         success = True
                     else:
-                        logger.warning(f"Step {index+1}/{len(command)} failed : {c} (exit code {returncode})")
+                        logger.warning(f"Step {index + 1} failed with exit code {result.returncode}.")
                         success = False
                         break
                 except Exception as e:
-                    logger.exception(f"Exception occurred during manual build: {e}")
+                    logger.exception(f"Exception occurred during step {index + 1}: {e}")
                     success = False
+                    break
+
             if not success:
-                logger.error("Manual build failed after all attempts.")
+                logger.error("Manual build failed after all steps.")
+
         return success
