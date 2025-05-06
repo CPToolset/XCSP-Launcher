@@ -1,6 +1,8 @@
-## v0.1.0a6 (2025-05-06)
+## v0.1.0a5 -> v0.1.0a6 (2025-05-06)
 
-## v0.1.0a5 (2025-05-06)
+### CI
+
+- Tags created to troubleshoot and stabilize GitHub Actions workflows
 
 ## v0.1.0a4 (2025-05-06)
 
