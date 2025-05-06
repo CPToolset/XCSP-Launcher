@@ -88,8 +88,8 @@ snap: pyinstaller
 	snapcraft
 
 # Création du package Chocolatey
-choco: pyinstaller
-	choco pack chocolatey/xcsp-launcher.nuspec
+choco:
+	choco pack chocolatey/xcsp-launcher.nuspec --source="https://push.chocolatey.org/"
 
 # Nettoyage
 clean:
