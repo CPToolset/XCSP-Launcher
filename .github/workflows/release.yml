@@ -41,22 +41,31 @@ jobs:
 
       - name: Build binary with PyInstaller
         run: make pyinstaller
-
-      - name: Install Snapcraft
+      - name: Install Snapcraft and build snap  (Linux only)
         if: matrix.os == 'ubuntu-latest'
-        uses: samuelmeuli/action-snapcraft@v3
-
-      - name: Build and publish Snap + DEB (Linux only)
+        id: snapcraft
+        uses: snapcore/action-build@v1
+      - uses: actions/upload-artifact@v3
+        with:
+          name: snap
+          path: ${{ steps.snapcraft.outputs.snap }}
+      - name: Publish SNAP to the snap store
+        uses: snapcore/action-publish@v1
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          snap: ${{ steps.snapcraft.outputs.snap }}
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
+      - name: Build DEB (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y ruby ruby-dev build-essential
           sudo gem install --no-document fpm
           make deb
-          make snap
-          snapcraft login --with ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
-          snapcraft push *.snap
-
+#          make snap
+#          snapcraft login --with ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
+#          snapcraft push *.snap
       - name: Chocolatey (Windows only)
         if: matrix.os == 'windows-latest'
         run: |
@@ -81,7 +90,7 @@ jobs:
           files: |
             dist/*
             *.deb
-            *.snap
+            ${{ steps.snapcraft.outputs.snap }}
             chocolatey/*.nupkg
             *macos.tar.gz
         env:
