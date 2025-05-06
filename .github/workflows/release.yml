@@ -41,22 +41,22 @@ jobs:
 
       - name: Build binary with PyInstaller
         run: make pyinstaller
-      - name: Install Snapcraft and build snap  (Linux only)
-        if: matrix.os == 'ubuntu-latest'
-        id: snapcraft
-        uses: snapcore/action-build@v1
-      - uses: actions/upload-artifact@v3
-        if: matrix.os == 'ubuntu-latest'
-        with:
-          name: snap
-          path: ${{ steps.snapcraft.outputs.snap }}
-      - name: Publish SNAP to the snap store
-        uses: snapcore/action-publish@v1
-        if: matrix.os == 'ubuntu-latest'
-        with:
-          snap: ${{ steps.snapcraft.outputs.snap }}
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
+#      - name: Install Snapcraft and build snap  (Linux only)
+#        if: matrix.os == 'ubuntu-latest'
+#        id: snapcraft
+#        uses: snapcore/action-build@v1
+#      - uses: actions/upload-artifact@v3
+#        if: matrix.os == 'ubuntu-latest'
+#        with:
+#          name: snap
+#          path: ${{ steps.snapcraft.outputs.snap }}
+#      - name: Publish SNAP to the snap store
+#        uses: snapcore/action-publish@v1
+#        if: matrix.os == 'ubuntu-latest'
+#        with:
+#          snap: ${{ steps.snapcraft.outputs.snap }}
+#        env:
+#          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
       - name: Build DEB (Linux only)
         if: matrix.os == 'ubuntu-latest'
         run: |
