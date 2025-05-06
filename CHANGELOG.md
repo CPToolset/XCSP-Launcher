@@ -1,3 +1,13 @@
+## v0.1.0a2 (2025-05-06)
+
+### Feat
+
+- **builder/build.py**: run each build step separately for improved error handling
+
+### Fix
+
+- **commands/install.py,-solver/solver.py**: Switch solver command to list to properly handle paths containing spaces
+
 ## v0.1.0a1 (2025-05-02)
 
 ### Feat

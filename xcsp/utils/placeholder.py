@@ -10,14 +10,17 @@ PLACEHOLDERS = {
 def replace_placeholder(cmd):
     for k, v in PLACEHOLDERS.items():
         cmd = cmd.replace(k, str(v))
-    return cmd
+    return cmd.split()
 
 
 def replace_solver_dir(cmd, dir):
-    return cmd.replace("{{SOLVER_DIR}}", dir)
-
+    for index, c in enumerate(cmd):
+        cmd[index] = c.replace("{{SOLVER_DIR}}", dir)
+    return cmd
 
 def replace_core_placeholder(cmd, executable, options):
-    cmd = cmd.replace("{{executable}}", str(executable))
-    cmd = cmd.replace("{{options}}", options)
-    return cmd
+    cmds = cmd.split()
+    result = []
+    for item in cmds :
+        result.append(item.replace("{{executable}}", str(executable)).replace("{{options}}", options))
+    return result
