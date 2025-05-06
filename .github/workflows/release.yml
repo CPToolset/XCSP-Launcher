@@ -70,7 +70,7 @@ jobs:
       - name: Chocolatey (Windows only)
         if: matrix.os == 'windows-latest'
         run: |
-          Copy-Item dist/xcsp -Destination "chocolatey/tools/xcsp.exe"
+          Copy-Item dist/xcsp.exe -Destination "chocolatey/tools/xcsp.exe"
           Copy-Item "xcsp/tools/xcsp3-solutionChecker-2.5.jar" -Destination "chocolatey/tools/xcsp3-solutionChecker-2.5.jar"
           make choco
           choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source="https://push.chocolatey.org/"
