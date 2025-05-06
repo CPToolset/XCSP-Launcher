@@ -1,3 +1,9 @@
+## v0.1.0a3 (2025-05-06)
+
+### Feat
+
+- **commands/install.py**: Support system filtering, case-insensitive placeholders, and dependencies
+
 ## v0.1.0a2 (2025-05-06)
 
 ### Feat
