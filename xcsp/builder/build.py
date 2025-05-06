@@ -4,7 +4,9 @@ This module defines strategies to build solver sources either automatically
 (based on detected build files) or manually (based on explicit configuration).
 It also provides utility functions to execute builds while logging their output.
 """
+import os
 import shlex
+import stat
 import subprocess
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -14,7 +16,7 @@ import psutil
 from loguru import logger
 
 from xcsp.utils.paths import ChangeDirectory, get_cache_dir
-from xcsp.utils.placeholder import replace_placeholder, replace_solver_dir
+from xcsp.utils.placeholder import replace_placeholder, replace_solver_dir_in_list, replace_solver_dir_in_str
 
 # Mapping of detected build configuration files to standard build commands
 MAP_FILE_BUILD_COMMANDS = {
@@ -144,12 +146,20 @@ class ManualBuildStrategy(BuildStrategy):
 
                 cwd_raw = step.get("cwd", str(self._path_solver))
 
-                cmd_str = replace_solver_dir(replace_placeholder(cmd_raw), str(self._path_solver))
-                cwd_str = replace_solver_dir(replace_placeholder(cwd_raw), str(self._path_solver))
-                cmd = shlex.split(cmd_str)
+                cmd = replace_solver_dir_in_list(replace_placeholder(cmd_raw), str(self._path_solver))
+                try:
+                    if not os.access(cmd[0], os.X_OK):
+                        path = Path(cmd[0])
+                        current_mode = path.stat().st_mode
+                        path.chmod(current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+                except Exception as e:
+                    logger.exception(f"Exception occurred during manual build (chmod on {cmd[0]}): {e}")
+                    return False
+
+                cwd_str = replace_solver_dir_in_str(cwd_raw,str(self._path_solver))
 
                 logger.info(f"Step {index + 1}/{len(build_steps)}: {' '.join(cmd)}")
-                log_file.write(f"Step {index + 1}/{len(build_steps)}: {cmd_str} (cwd: {cwd_str})\n")
+                log_file.write(f"Step {index + 1}/{len(build_steps)}: {' '.join(cmd)} (cwd: {cwd_str})\n")
                 log_file.flush()
 
                 try:
