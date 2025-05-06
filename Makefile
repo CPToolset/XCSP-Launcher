@@ -89,7 +89,7 @@ snap: pyinstaller
 
 # Création du package Chocolatey
 choco: pyinstaller
-	choco pack
+	choco pack chocolatey/xcsp-launcher.nuspec
 
 # Nettoyage
 clean:
