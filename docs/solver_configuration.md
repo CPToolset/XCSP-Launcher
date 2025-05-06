@@ -14,6 +14,8 @@ The extension of the file can be one of these extensions:
 - `.xsc.yml` 
 - `.solver.yml`
 
+> A JSON Schema for validating solver configuration files is available at: [https://github.com/crillab/metrics-solvers/blob/main/.solver.schema.json](https://github.com/crillab/metrics-solvers/blob/main/.solver.schema.json)
+
 ---
 
 ### 🧩 General Information
@@ -29,19 +31,42 @@ The extension of the file can be one of these extensions:
 | `tags`       | string[]| ❌ No    | Tags like `cp`, `cop`, `integer`, `scheduling`...                           |
 | `system`     | string or string[] | ✅ Yes | List of compatible OS (`Linux`, `Windows`, `macOS`) or `"all"`.             |
 
+
 ---
-
-
 
 ### 🛠️ Build Instructions
 
-| Field                 | Type                | Required                                 | Description                                                                                     | Default |
-| --------------------- | ------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------- | ------- |
-| `build.mode`          | string              | ✅ Yes                                    | Must be `"manual"` or `"auto"`.                                                                 | -       |
-| `build.build_command` | string or string\[] | ⚠️ Yes if `build_steps` is not defined   | Simple shell command(s) to compile the solver. Can be a single string or a list of strings.     |         |
-| `build.build_steps`   | object\[]           | ⚠️ Yes if `build_command` is not defined | Structured list of build steps (preferred format). Each step has a `cmd` and an optional `cwd`. |         |
+| Field                 | Type                | Required                                 | Description                                                                                                     | Default |
+| --------------------- | ------------------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------- |
+| `build.mode`          | string              | ✅ Yes                                    | Must be `"manual"` or `"auto"`.                                                                                 | -       |
+| `build.dependencies`  | object\[]           | ❌ No                                     | List of Git repositories to clone before running the build steps. Each item can optionally specify a directory. | -       |
+| `build.build_command` | string or string\[] | ⚠️ Yes if `build_steps` is not defined   | Simple shell command(s) to compile the solver. Can be a single string or a list of strings.                     |         |
+| `build.build_steps`   | object\[]           | ⚠️ Yes if `build_command` is not defined | Structured list of build steps (preferred format). Each step has a `cmd` and an optional `cwd`.                 |         |
 
 If `build.build_steps` is used, it takes precedence over `build.build_command`. Each step in `build_steps` is executed individually with proper error handling and without invoking a shell directly.
+
+#### 🔗 `dependencies` Structure
+
+Each dependency is an object with:
+
+| Field | Type         | Required | Description                                                                               |
+| ----- | ------------ | -------- |-------------------------------------------------------------------------------------------|
+| `git` | string (URL) | ✅ Yes    | URL of the Git repository to clone.                                                       |
+| `dir` | string       | ❌ No     | Directory to clone into (relative or absolute). Defaults to `{{SOLVER_DIR}}/../../deps/`. |
+
+**Example:**
+
+```yaml
+build:
+  mode: manual
+  dependencies:
+    - git: https://github.com/xcsp3team/XCSP3-CPP-Parser.git
+      dir: "{{SOLVER_DIR}}/../XCSP3-CPP-Parser"
+```
+
+This ensures that required external repositories are available before building the solver.
+
+> By default, dependencies are cloned into `{{SOLVER_DIR}}/../../deps/` unless a specific `dir` is provided.
 
 #### 🔨 `build_steps` Structure
 
@@ -58,13 +83,13 @@ Each item in `build_steps` is an object with:
 build:
   mode: manual
   build_steps:
-    - cmd: "git clone https://github.com/xcsp3team/XCSP3-CPP-Parser.git"
-      cwd: "{{SOLVER_DIR}}/../"
-    - cmd: "{{cmake}} -DCMAKE_BUILD_TYPE=Debug -G 'CodeBlocks - Unix Makefiles' ."
-      cwd: "{{SOLVER_DIR}}/../XCSP3-CPP-Parser"
-    - cmd: "{{cmake}} --build . --target all -- -j 8"
-      cwd: "{{SOLVER_DIR}}/../XCSP3-CPP-Parser"
+    - cmd: "{{cmake}} -DCMAKE_BUILD_TYPE=Release -G 'Unix Makefiles' ."
+      cwd: "{{SOLVER_DIR}}"
+    - cmd: "{{cmake}} --build . --target cosoco -- -j 8"
+      cwd: "{{SOLVER_DIR}}"
 ```
+
+> Any build commands required to compile the dependencies must be added manually to `build_steps`, using the `cwd` key if needed to ensure the command is executed in the appropriate directory.
 
 ---
 
@@ -112,14 +137,18 @@ This is a special section that corresponds to the [`data` part](https://metrics.
 You can use the following placeholders in `command.template`, `build.build_command`, and `build.build_steps`:
 
 | Placeholder      | Description                                                  |
-| ---------------- | ------------------------------------------------------------ |
+|------------------|--------------------------------------------------------------|
+| `{{solver_dir}}` | Absolute path to the solver source directory.                |
 | `{{executable}}` | Path to the compiled executable.                             |
 | `{{instance}}`   | Path to the XCSP3 instance.                                  |
 | `{{options}}`    | All generated options passed to the solver.                  |
 | `{{java}}`       | Full path to the system Java binary (`/usr/bin/java`, etc.). |
 | `{{python}}`     | Full path to the Python interpreter.                         |
 | `{{cmake}}`      | Full path to cmake, usually resolved automatically.          |
-| `{{SOLVER_DIR}}` | Absolute path to the solver source directory.                |
+| `{{bash}}`       | Full path to bash interpreter.                               |
+
+
+> Placeholders are case-insensitive and can be written using any casing, such as {{bash}}, {{BASH}}, or {{BaSh}}.
 
 
 ---
