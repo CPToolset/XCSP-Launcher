@@ -31,12 +31,40 @@ The extension of the file can be one of these extensions:
 
 ---
 
+
+
 ### 🛠️ Build Instructions
 
-| Field                  | Type                | Required | Description                                                | Default |
-|------------------------|---------------------|----------|------------------------------------------------------------|---------|
-| `build.mode`           | string              | ✅ Yes   | Must be `"manual"` or `"auto"`.                            | -       |
-| `build.build_command`  | string or string[]  | ⚠️ Yes if `manual` | Shell command(s) to compile the solver manually.        | -       |
+| Field                 | Type                | Required                                 | Description                                                                                     | Default |
+| --------------------- | ------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------- | ------- |
+| `build.mode`          | string              | ✅ Yes                                    | Must be `"manual"` or `"auto"`.                                                                 | -       |
+| `build.build_command` | string or string\[] | ⚠️ Yes if `build_steps` is not defined   | Simple shell command(s) to compile the solver. Can be a single string or a list of strings.     |         |
+| `build.build_steps`   | object\[]           | ⚠️ Yes if `build_command` is not defined | Structured list of build steps (preferred format). Each step has a `cmd` and an optional `cwd`. |         |
+
+If `build.build_steps` is used, it takes precedence over `build.build_command`. Each step in `build_steps` is executed individually with proper error handling and without invoking a shell directly.
+
+#### 🔨 `build_steps` Structure
+
+Each item in `build_steps` is an object with:
+
+| Field | Type   | Required | Description                                                            |
+| ----- | ------ | -------- | ---------------------------------------------------------------------- |
+| `cmd` | string | ✅ Yes    | The command to execute. It will be automatically split (like a shell). |
+| `cwd` | string | ❌ No     | The working directory for the command. Defaults to the solver root.    |
+
+**Example:**
+
+```yaml
+build:
+  mode: manual
+  build_steps:
+    - cmd: "git clone https://github.com/xcsp3team/XCSP3-CPP-Parser.git"
+      cwd: "{{SOLVER_DIR}}/../"
+    - cmd: "{{cmake}} -DCMAKE_BUILD_TYPE=Debug -G 'CodeBlocks - Unix Makefiles' ."
+      cwd: "{{SOLVER_DIR}}/../XCSP3-CPP-Parser"
+    - cmd: "{{cmake}} --build . --target all -- -j 8"
+      cwd: "{{SOLVER_DIR}}/../XCSP3-CPP-Parser"
+```
 
 ---
 
@@ -79,19 +107,20 @@ This is a special section that corresponds to the [`data` part](https://metrics.
 
 ---
 
-### 🔁 Available Placeholders
+### 🔁 Available Placeholders (updated)
 
-You can use the following placeholders in `command.template` and `build.build_command`:
+You can use the following placeholders in `command.template`, `build.build_command`, and `build.build_steps`:
 
-| Placeholder        | Description                                                       |
-|--------------------|-------------------------------------------------------------------|
-| `{{executable}}`   | Path to the compiled executable.                                  |
-| `{{instance}}`     | Path to the XCSP3 instance.                                       |
-| `{{options}}`      | All generated options passed to the solver.                       |
-| `{{java}}`         | Full path to the system Java binary (`/usr/bin/java`, etc.).      |
-| `{{python}}`       | Full path to the Python interpreter.                              |
-| `{{cmake}}`        | Full path to cmake, usually resolved automatically.               |
-| `{{SOLVER_DIR}}`   | Absolute path to the solver source directory.                     |
+| Placeholder      | Description                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| `{{executable}}` | Path to the compiled executable.                             |
+| `{{instance}}`   | Path to the XCSP3 instance.                                  |
+| `{{options}}`    | All generated options passed to the solver.                  |
+| `{{java}}`       | Full path to the system Java binary (`/usr/bin/java`, etc.). |
+| `{{python}}`     | Full path to the Python interpreter.                         |
+| `{{cmake}}`      | Full path to cmake, usually resolved automatically.          |
+| `{{SOLVER_DIR}}` | Absolute path to the solver source directory.                |
+
 
 ---
 
