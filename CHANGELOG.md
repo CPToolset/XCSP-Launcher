@@ -1,3 +1,9 @@
+## v0.1.0a4 (2025-05-06)
+
+### Feat
+
+- **main.py**: Adds a command "--info" for printing a summary of paths using by xcsp-launcher
+
 ## v0.1.0a3 (2025-05-06)
 
 ### Feat
