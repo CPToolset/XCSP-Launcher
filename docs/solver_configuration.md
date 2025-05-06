@@ -163,3 +163,15 @@ You can use the following placeholders in `command.template`, `build.build_comma
 
 ## Configuration file discovery
 
+By default, solver configuration files are searched in two locations:
+
+* **System configuration directory**, typically `/usr/share/xcsp-launcher/configs` on Linux.
+* **User configuration directory**, typically `~/.config/xcsp-launcher/solvers` on Linux.
+
+Whenever a solver is installed, the launcher updates a **cache file** to speed up lookup. This file is stored in the user cache directory, for example: `~/.cache/xcsp-launcher/solver_cache.json`.
+
+To display all paths and directories used by your current `xcsp-launcher` installation, run:
+
+```bash
+xcsp --info
+```
