@@ -7,8 +7,7 @@ class Xcsp < Formula
 
   def install
     bin.install "bin/xcsp-macos" => "xcsp"
-    share.install "share/xcsp-launcher/configs" => "xcsp-launcher/configs"
-    share.install "share/xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar" => "xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar"
+    share.install "share/xcsp-launcher"
   end
 
 #  def post_install
