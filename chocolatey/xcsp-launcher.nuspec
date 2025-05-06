@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>xcsp-launcher</id>
-    <version>0.1.0-alpha10</version>
+    <version>0.1.0-alpha11</version>
     <authors>CPToolset Team</authors>
     <owners>University of Luxembourg, Univ Artois &amp; CNRS</owners>
     <description>A unified launcher for XCSP3 solvers</description>
