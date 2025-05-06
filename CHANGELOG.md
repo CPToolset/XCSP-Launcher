@@ -18,18 +18,14 @@
 
 ### Feat
 
-- **solver/resolver.py**: Supported more extension for searching configuration file
-- **commands/solver.py**: adds JSON output for the list of solvers
-
-### Fix
-
-- **solver/solver.py**: Fixes a bug that ignore the version from CLI
-- **Makefile**: fixes some bugs with brew
-- **pyproject.toml**: Fixes some problems with the pypi package.
-- **Makefile**: deb from pyinstaller
-
-### Refactor
-
-- **xcsp/main.py,-bin/main.py**: the main function is now in xcsp/main.py
-- **main.py**: Adds a method main()
-- **Makefile**: refactoring Makefile
+- **commands/install.py**:
+    - install solver from configuration file 
+    - install solver from repo 
+    - install solver from git
+- **commands/solver.py**:
+    - run solver without specify version
+    - run solver using specific version 
+    - keep solver output or not 
+    - prefix the solver output
+    - redirect solver output 
+    - JSON output for the list of solvers
