@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.table import Table
 
 def list_solvers(args):
-    table = Table(title="Solver List")
+    table: Table = Table(title="Solver List")
 
     table.add_column("Name", justify="center")
     table.add_column("ID", justify="center")

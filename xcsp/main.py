@@ -11,7 +11,7 @@ from tqdm import tqdm
 import xcsp
 from xcsp.utils.bootstrap import check_bootstrap
 from xcsp.utils.log import init_log
-from xcsp.utils.paths import get_system_config_dir
+from xcsp.utils.paths import get_system_config_dir, print_path_summary
 
 ALIAS_COMMANDS = {
     "i": "install",
@@ -76,6 +76,7 @@ def parse_arguments() -> Tuple[ArgumentParser, Dict[str, Any]]:
                         help='shows the version of XCSP launcher being executed',
                         action='store_true')
     parser.add_argument('--bootstrap', help="Install default solver from system configuration.", action='store_true')
+    parser.add_argument('--info', help="Produce a table with different information about the current installation.", action='store_true')
     return parser, vars(parser.parse_args())
 
 
@@ -119,6 +120,10 @@ def manage_subcommand(arguments):
         logger.error(e)
 
 
+def info(argument_parser):
+    print_path_summary()
+
+
 def main():
     # Parsing the command line arguments.
     argument_parser, args = parse_arguments()
@@ -139,6 +144,10 @@ def main():
 
     if args['bootstrap']:
         bootstrap(argument_parser)
+        sys.exit()
+
+    if args['info']:
+        info(argument_parser)
         sys.exit()
 
     manage_subcommand(args)

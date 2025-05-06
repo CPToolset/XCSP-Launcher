@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 from platformdirs import user_cache_dir, user_config_dir, user_data_dir
+from rich.console import Console
+from rich.table import Table
 
 from xcsp import __title__
 
@@ -57,6 +59,22 @@ def get_system_config_dir() -> Path:
         return Path(f"/usr/local/share/{__title__}/configs")
     else:
         return Path(f"/usr/share/{__title__}/configs")
+
+def print_path_summary():
+    """Print a summary of important XCSP Launcher paths using Rich."""
+    console = Console(width=200)
+    table = Table(title=f"[bold cyan]{__title__} – Path Summary", show_lines=True)
+
+    table.add_column("Purpose", justify="center")
+    table.add_column("Path", justify="center")
+
+    table.add_row("🧱 Solver install dir", str(get_solver_install_dir()))
+    table.add_row("📦 System config dir", str(get_system_config_dir()))
+    table.add_row("🧪 Solver config dir", str(get_solver_config_dir()))
+    table.add_row("⚙️ User preferences", str(get_user_preferences_dir()))
+    table.add_row("🧠 Cache directory (logs)", str(get_cache_dir()))
+
+    console.print(table)
 
 class ChangeDirectory:
     """Context manager to temporarily change the current working directory."""
