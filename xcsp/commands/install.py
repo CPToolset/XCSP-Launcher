@@ -113,12 +113,13 @@ class ConfigFileStrategy(ConfigStrategy):
 
 
 def build_cmd(config, bin_executable):
-    template = config["command"]["template"]
-    prefix = replace_placeholder(config["command"]["prefix"]) + " " if config["command"].get("prefix") else ''
-    options = config["command"]["always_include_options"]
-    core_cmd = replace_core_placeholder(template, bin_executable, options)
-    cmd = f"{prefix}{core_cmd}"
-    return cmd
+    result_cmd = []
+    if config["command"].get("prefix"):
+        result_cmd.extend(replace_placeholder(config["command"]["prefix"]))
+    if options:=config["command"].get("always_include_options"):
+        template = config["command"]["template"]
+        result_cmd.extend(replace_core_placeholder(template, bin_executable, options))
+    return result_cmd
 
 
 class Installer:

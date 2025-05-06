@@ -56,7 +56,7 @@ class Solver:
             name (str): Human-readable name of the solver.
             id_solver (str): Unique solver identifier.
             version (str): Solver version.
-            command_line (str): Base command line template for the solver.
+            command_line ([str]): Base command line template as list with placeholder replaced.
             options (dict): Mapping of standard solver options.
             alias (list, optional): List of alternative names for the solver.
         """
@@ -98,7 +98,7 @@ class Solver:
     @property
     def cmd(self):
         """Return the base command line of the solver."""
-        return self._command_line
+        return ' '.join(self._command_line)
 
     def set_time_limit(self, time_limit: int | None):
         """
@@ -221,11 +221,13 @@ class Solver:
             dict: A dictionary summarizing the solver run including solutions, bounds, times.
         """
         command = self._command_line
-        for opt in self._args:
-            command += f" {opt}"
-        command = command.replace("{{instance}}", str(instance_path))
-
+        for index,elt in command:
+            if elt=='{{instance}}':
+                command[index] = elt.replace("{{instance}}", str(instance_path))
+        command.extend(self._args)
         logger.info(f"Launching solver: {command}")
+
+        logger.debug("Each elt of command line : " +' '.join([f"'{elt}'" for elt in command]))
 
         process = psutil.Popen(
             shlex.split(command),
