@@ -6,9 +6,9 @@ class Xcsp < Formula
   license "LGPL-3.0-or-later"
 
   def install
-    bin.install "xcsp-macos" => "xcsp"
-    share.install "configs" => "xcsp-launcher/configs"
-    share.install "xcsp/tools/xcsp3-solutionChecker-2.5.jar" => "xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar"
+    bin.install "bin/xcsp-macos" => "xcsp"
+    share.install "share/xcsp-launcher/configs" => "xcsp-launcher/configs"
+    share.install "share/xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar" => "xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar"
   end
 
 #  def post_install

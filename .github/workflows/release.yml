@@ -71,7 +71,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           make choco
-          choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }}
+          choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source="https://push.chocolatey.org/"
 
       - name: Homebrew (macOS only)
         if: matrix.os == 'macos-latest'
