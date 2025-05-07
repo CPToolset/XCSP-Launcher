@@ -32,47 +32,23 @@ jobs:
       - name: Build Python package
         run: python -m build
 
-      - name: Publish to PyPI
-        if: matrix.os == 'ubuntu-latest'
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
-        run: twine upload dist/* || true
-
       - name: Build binary with PyInstaller
         run: make pyinstaller
-#      - name: Install Snapcraft and build snap  (Linux only)
-#        if: matrix.os == 'ubuntu-latest'
-#        id: snapcraft
-#        uses: snapcore/action-build@v1
-#      - uses: actions/upload-artifact@v3
-#        if: matrix.os == 'ubuntu-latest'
-#        with:
-#          name: snap
-#          path: ${{ steps.snapcraft.outputs.snap }}
-#      - name: Publish SNAP to the snap store
-#        uses: snapcore/action-publish@v1
-#        if: matrix.os == 'ubuntu-latest'
-#        with:
-#          snap: ${{ steps.snapcraft.outputs.snap }}
-#        env:
-#          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
-      - name: Build DEB (Linux only)
+
+      - name: Build extra Linux packages
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ruby ruby-dev build-essential
+          sudo apt-get install -y ruby ruby-dev build-essential rpm fakeroot tar
           sudo gem install --no-document fpm
-          make deb
-#          make snap
-#          snapcraft login --with ${{ secrets.SNAPCRAFT_LOGIN_FILE }}
-#          snapcraft push *.snap
+          make deb pacman rpm
+
       - name: Chocolatey (Windows only)
         if: matrix.os == 'windows-latest'
         shell: powershell
         run: |
           Copy-Item dist/xcsp.exe -Destination "chocolatey/tools/xcsp.exe"
-          Copy-Item "xcsp/tools/xcsp3-solutionChecker-2.5.jar" -Destination "chocolatey/tools/xcsp3-solutionChecker-2.5.jar"
+          Copy-Item xcsp/tools/xcsp3-solutionChecker-2.5.jar -Destination "chocolatey/tools/xcsp3-solutionChecker-2.5.jar"
           Push-Location chocolatey
           choco pack xcsp-launcher.nuspec
           Pop-Location
@@ -89,15 +65,74 @@ jobs:
           rm -rf brew-tap
         env:
           GITHUB_TOKEN: ${{ secrets.XCSP_GITHUB_TOKEN }}
+
+      - name: Build Changelog
+        id: github_release
+        uses: mikepenz/release-changelog-builder-action@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate checksums (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sha256sum dist/* > checksums.txt
+          sha256sum *.deb *.rpm *.pkg.tar.* *.snap *.tar.gz || true >> checksums.txt
+
+      - name: Install cosign (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign checksums.txt with cosign (Linux only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cosign sign-blob --yes \
+            --output-signature checksums.txt.sig \
+            --output-certificate checksums.txt.pem \
+            checksums.txt
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
       - name: Create GitHub Release
+        if: matrix.os == 'ubuntu-latest'
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
+          body: |
+            ${{steps.github_release.outputs.changelog}}
+
+            ---
+
+            ## 🔐 Verifying the artifacts
+
+            To verify the integrity and authenticity of the downloaded files:
+
+            1. Download the `checksums.txt`, `checksums.txt.sig`, and `checksums.txt.pem` files from this release.
+            2. Use `cosign` to verify the signature:
+
+            ```bash
+            cosign verify-blob \
+              --cert checksums.txt.pem \
+              --signature checksums.txt.sig \
+              --certificate-identity "https://github.com/CPToolset/xcsp-launcher/.github/workflows/release.yml@refs/heads/main" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+              checksums.txt
+            ```
+
+            If the output is `Verified OK`, you can now safely check the file hashes:
+
+            ```bash
+            sha256sum --ignore-missing -c checksums.txt
+            ```
           files: |
-            dist/*
+            dist/xcsp*
             *.deb
-            ${{ steps.snapcraft.outputs.snap }}
+            *.rpm
+            *.pkg.tar.*
+            *.snap
+            *.tar.gz
             chocolatey/*.nupkg
-            *macos.tar.gz
+            checksums.txt
+            checksums.txt.sig
+            checksums.txt.pem
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
