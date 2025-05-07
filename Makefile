@@ -87,7 +87,7 @@ publish-brew: xcsp-*-macos.tar.gz
 pacman: $(DIST_DIR)/$(BIN_NAME)
 	mkdir -p package/usr/bin
 	cp $(DIST_DIR)/$(BIN_NAME) package/usr/bin/xcsp
-	cd package && fpm -s dir -t pacman -n $(PKG_NAME) -v $(VERSION:v%=%) \
+	export SHELL=/bin/bash && cd package && fpm -s dir -t pacman -n $(PKG_NAME) -v $(VERSION:v%=%) \
 	--description $(DESCRIPTION) \
 	--license $(LICENSE) \
 	--maintainer $(MAINTAINER) \
