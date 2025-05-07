@@ -23,7 +23,7 @@ def normalize_placeholders(text: str) -> str:
         str: Modified string with placeholders lowercased.
     """
     pattern = re.compile(r"{{\s*([a-zA-Z0-9_]+)\s*}}")
-    return pattern.sub(lambda m: f"{{{{ {m.group(1).lower()} }}}}", text)
+    return pattern.sub(lambda m: "{{"+ m.group(1).lower() +"}}", text)
 
 
 def replace_placeholder(cmd):
