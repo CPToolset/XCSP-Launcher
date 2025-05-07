@@ -57,6 +57,7 @@ brew: $(DIST_DIR)/$(BIN_NAME)
 	# Générer un tar.gz contenant juste l'exécutable et les configs
 	mkdir -p brew_tmp/bin brew_tmp/share/xcsp-launcher/configs brew_tmp/share/xcsp-launcher/tools
 	cp $(DIST_DIR)/$(BIN_NAME) brew_tmp/bin/xcsp-macos
+	cp $(DIST_DIR)/${BIN_NAME} $(DIST_DIR)/xcsp-macos
 	cp -r configs/* brew_tmp/share/xcsp-launcher/configs/
 	cp xcsp/tools/xcsp3-solutionChecker-2.5.jar brew_tmp/share/xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar
 
@@ -82,6 +83,31 @@ publish-brew: xcsp-*-macos.tar.gz
 	cp .packaging/homebrew/xcsp.rb brew-tap/Formula/xcsp.rb
 	cd brew-tap && git add Formula/ && git commit -m "Update formula for version $(VERSION)" && git push
 	rm -rf brew-tap
+
+pacman: $(DIST_DIR)/$(BIN_NAME)
+	mkdir -p package/usr/bin
+	cp $(DIST_DIR)/$(BIN_NAME) package/usr/bin/xcsp
+	cd package && fpm -s dir -t pacman -n $(PKG_NAME) -v $(VERSION:v%=%) \
+	--description $(DESCRIPTION) \
+	--license $(LICENSE) \
+	--maintainer $(MAINTAINER) \
+	--url $(URL) \
+	--prefix=/ ./usr/bin/xcsp
+	cp package/*.pkg.tar.* .
+	rm -rf package
+rpm: $(DIST_DIR)/$(BIN_NAME)
+	mkdir -p package/usr/bin
+	cp $(DIST_DIR)/$(BIN_NAME) package/usr/bin/xcsp
+	cd package && fpm -s dir -t rpm -n $(PKG_NAME) -v $(VERSION:v%=%) \
+	--description $(DESCRIPTION) \
+	--license $(LICENSE) \
+	--maintainer $(MAINTAINER) \
+	--url $(URL) \
+	--prefix=/ ./usr/bin/xcsp
+	cp package/*.rpm .
+	rm -rf package
+
+
 
 # Création du snap (suppose que snapcraft est installé)
 snap: pyinstaller
