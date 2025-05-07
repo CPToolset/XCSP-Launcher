@@ -6,6 +6,10 @@ on:
     tags:
       - "v*"
 
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   release:
     runs-on: ${{ matrix.os }}
@@ -42,17 +46,16 @@ jobs:
           sudo apt-get install -y ruby ruby-dev build-essential rpm fakeroot tar libarchive-tools
           sudo gem install --no-document fpm
           make deb pacman rpm
-
-      - name: Chocolatey (Windows only)
-        if: matrix.os == 'windows-latest'
-        shell: powershell
-        run: |
-          Copy-Item dist/xcsp.exe -Destination "chocolatey/tools/xcsp.exe"
-          Copy-Item xcsp/tools/xcsp3-solutionChecker-2.5.jar -Destination "chocolatey/tools/xcsp3-solutionChecker-2.5.jar"
-          Push-Location chocolatey
-          choco pack xcsp-launcher.nuspec
-          Pop-Location
-          choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source="https://push.chocolatey.org/"
+#      - name: Chocolatey (Windows only)
+#        if: matrix.os == 'windows-latest'
+#        shell: powershell
+#        run: |
+#          Copy-Item dist/xcsp.exe -Destination "chocolatey/tools/xcsp.exe"
+#          Copy-Item xcsp/tools/xcsp3-solutionChecker-2.5.jar -Destination "chocolatey/tools/xcsp3-solutionChecker-2.5.jar"
+#          Push-Location chocolatey
+#          choco pack xcsp-launcher.nuspec
+#          Pop-Location
+#          choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source="https://push.chocolatey.org/"
 
       - name: Homebrew (macOS only)
         if: matrix.os == 'macos-latest'
