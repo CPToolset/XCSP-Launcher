@@ -28,18 +28,6 @@ sudo dpkg -i xcsp-launcher_<version>.deb
 
 > You may need to run `sudo apt --fix-broken install` if dependencies are missing.
 
-#### Install via Snap Store
-
-[![Install with Snap](https://snapcraft.io/static/images/badges/en/snap-store-white.svg)](https://snapcraft.io/xcsp-launcher)
-
-```bash
-sudo snap install xcsp-launcher
-```
-
-Snap ensures easy updates and cross-distro compatibility.
-
----
-
 ### 🍏 macOS
 
 Install via [Homebrew](https://brew.sh):
@@ -55,13 +43,7 @@ brew install xcsp
 
 ### 🪟 Windows
 
-Install using [Chocolatey](https://chocolatey.org):
-
-```bash
-choco install xcsp-launcher
-```
-
-> Ensure Chocolatey is installed first. See [docs](https://chocolatey.org/install).
+Download the latest windows binary from [github releases](https://github.com/CPToolset/XCSP-Launcher/releases/). 
 
 ---
 

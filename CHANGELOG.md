@@ -41,3 +41,4 @@
     - prefix the solver output
     - redirect solver output 
     - JSON output for the list of solvers
+    - JSON output for the output of the solvers 

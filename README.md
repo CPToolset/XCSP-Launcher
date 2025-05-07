@@ -5,7 +5,7 @@
 [![Documentation](https://app.readthedocs.org/projects/xcsp/badge/?version=latest)](https://xcsp-doc.tootatis.dev)
 [![Python Tests](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/tests.yml/badge.svg)](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/tests.yml)
 [![Release](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/release.yml/badge.svg)](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/release.yml)
-[![Installer à partir du Snap Store](https://snapcraft.io/fr/dark/install.svg)](https://snapcraft.io/xcsp-launcher)
+
 
 ---
 
@@ -43,7 +43,28 @@ cd xcsp-launcher
 pip install .
 ```
 
-Binary packages (DEB, Snap, Chocolatey, Homebrew) will be available soon!
+
+<details>
+<summary>Debian/Ubuntu</summary>
+
+Download the latest binary from [github releases](https://github.com/CPToolset/XCSP-Launcher/releases/) and run:
+
+```bash
+sudo dpkg -i xcsp-launcher*.deb
+```
+</details>
+
+<details>
+<summary>MacOS</summary>
+
+Install via [Homebrew](https://brew.sh):
+
+```bash
+brew tap CPToolset/homebrew-xcsp-launcher
+brew install xcsp
+```
+</details>
+
 
 ---
 
