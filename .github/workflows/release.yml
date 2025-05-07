@@ -36,6 +36,13 @@ jobs:
       - name: Build Python package
         run: python -m build
 
+      - name: Publish to PyPI
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: twine upload dist/* || true
+
       - name: Build binary with PyInstaller
         run: make pyinstaller
 
@@ -46,16 +53,6 @@ jobs:
           sudo apt-get install -y ruby ruby-dev build-essential rpm fakeroot tar libarchive-tools
           sudo gem install --no-document fpm
           make deb pacman rpm
-#      - name: Chocolatey (Windows only)
-#        if: matrix.os == 'windows-latest'
-#        shell: powershell
-#        run: |
-#          Copy-Item dist/xcsp.exe -Destination "chocolatey/tools/xcsp.exe"
-#          Copy-Item xcsp/tools/xcsp3-solutionChecker-2.5.jar -Destination "chocolatey/tools/xcsp3-solutionChecker-2.5.jar"
-#          Push-Location chocolatey
-#          choco pack xcsp-launcher.nuspec
-#          Pop-Location
-#          choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source="https://push.chocolatey.org/"
 
       - name: Homebrew (macOS only)
         if: matrix.os == 'macos-latest'
@@ -69,24 +66,53 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.XCSP_GITHUB_TOKEN }}
 
+#      - name: Chocolatey (Windows only)
+#        if: matrix.os == 'windows-latest'
+#        shell: powershell
+#        run: |
+#          Copy-Item dist/xcsp.exe -Destination "chocolatey/tools/xcsp.exe"
+#          Copy-Item xcsp/tools/xcsp3-solutionChecker-2.5.jar -Destination "chocolatey/tools/xcsp3-solutionChecker-2.5.jar"
+#          Push-Location chocolatey
+#          choco pack xcsp-launcher.nuspec
+#          Pop-Location
+#          choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source="https://push.chocolatey.org/"
+
+      - name: Upload built binaries and packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}
+          path: |
+            dist/xcsp*
+            *.deb
+            *.rpm
+            *.pkg.tar.*
+            *.tar.gz
+            *.snap
+            chocolatey/*.nupkg
+
+  finalize:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
       - name: Build Changelog
         id: github_release
         uses: mikepenz/release-changelog-builder-action@v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate checksums (Linux only)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sha256sum dist/* > checksums.txt
-          sha256sum *.deb *.rpm *.pkg.tar.* *.snap *.tar.gz || true >> checksums.txt
-
-      - name: Install cosign (Linux only)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Install cosign
         uses: sigstore/cosign-installer@v3
 
-      - name: Sign checksums.txt with cosign (Linux only)
-        if: matrix.os == 'ubuntu-latest'
+      - name: Download all built binaries
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Generate checksums
+        run: |
+          find artifacts -type f -exec sha256sum {} \; > checksums.txt
+
+      - name: Sign checksums.txt with cosign
         run: |
           cosign sign-blob --yes \
             --output-signature checksums.txt.sig \
@@ -96,7 +122,6 @@ jobs:
           COSIGN_EXPERIMENTAL: 1
 
       - name: Create GitHub Release
-        if: matrix.os == 'ubuntu-latest'
         uses: softprops/action-gh-release@v2
         with:
           prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
@@ -107,10 +132,12 @@ jobs:
 
             ## 🔐 Verifying the artifacts
 
-            To verify the integrity and authenticity of the downloaded files:
+            All release artifacts (executables and packages for every OS) are included in the signed `checksums.txt` file.
 
-            1. Download the `checksums.txt`, `checksums.txt.sig`, and `checksums.txt.pem` files from this release.
-            2. Use `cosign` to verify the signature:
+            ### How to verify:
+
+            1. Download `checksums.txt`, `checksums.txt.sig`, and `checksums.txt.pem` from the release.
+            2. Run this command:
 
             ```bash
             cosign verify-blob \
@@ -121,19 +148,13 @@ jobs:
               checksums.txt
             ```
 
-            If the output is `Verified OK`, you can now safely check the file hashes:
+            If the output is `Verified OK`, you can then validate the integrity of the downloaded files:
 
             ```bash
             sha256sum --ignore-missing -c checksums.txt
             ```
           files: |
-            dist/xcsp*
-            *.deb
-            *.rpm
-            *.pkg.tar.*
-            *.snap
-            *.tar.gz
-            chocolatey/*.nupkg
+            artifacts/**/*
             checksums.txt
             checksums.txt.sig
             checksums.txt.pem
