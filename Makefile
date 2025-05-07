@@ -119,7 +119,7 @@ choco:
 
 # Nettoyage
 clean:
-	rm -rf build dist *.spec package *.deb *.snap *.tar.gz
+	rm -rf build dist *.spec package *.deb *.snap *.tar.gz *.rpm *.pkg.*
 
 
 $(DIST_DIR)/$(BIN_NAME): pyinstaller
