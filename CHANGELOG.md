@@ -1,3 +1,9 @@
+## v0.2.0 (2025-05-09)
+
+### Feat
+
+- **solver/solver.py**: Improve CLI management to support running the solver multiple times
+
 ## v0.1.1 (2025-05-09)
 
 ### Fix
