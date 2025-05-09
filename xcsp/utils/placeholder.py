@@ -47,7 +47,13 @@ def replace_core_placeholder(cmd, executable, options):
     result = []
     for item in cmds:
         r = normalize_placeholders(item)
-        for k, value in zip(["{{executable}}", "{{options}}"], [str(executable), options]):
-            r = r.replace(k, value)
+        if "{{executable}}" in r:
+            r = r.replace("{{executable}}", str(executable))
+            result.append(r)
+            continue
+        if "{{options}}" in r:
+            for opt in shlex.split(options):
+                result.append(opt)
+            continue
         result.append(r)
     return result

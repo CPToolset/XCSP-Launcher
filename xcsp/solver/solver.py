@@ -221,7 +221,7 @@ class Solver:
             dict: A dictionary summarizing the solver run including solutions, bounds, times.
         """
         command = self._command_line
-        for index,elt in command:
+        for index,elt in enumerate(command):
             if elt=='{{instance}}':
                 command[index] = elt.replace("{{instance}}", str(instance_path))
         command.extend(self._args)
@@ -230,7 +230,7 @@ class Solver:
         logger.debug("Each elt of command line : " +' '.join([f"'{elt}'" for elt in command]))
 
         process = psutil.Popen(
-            shlex.split(command),
+            command,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
