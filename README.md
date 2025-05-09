@@ -5,6 +5,7 @@
 [![Documentation](https://app.readthedocs.org/projects/xcsp/badge/?version=latest)](https://xcsp-doc.tootatis.dev)
 [![Python Tests](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/tests.yml/badge.svg)](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/tests.yml)
 [![Release](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/release.yml/badge.svg)](https://github.com/CPToolset/XCSP-Launcher/actions/workflows/release.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=CPToolset_XCSP-Launcher&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=CPToolset_XCSP-Launcher)
 
 
 ---
