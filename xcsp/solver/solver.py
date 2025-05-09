@@ -221,7 +221,7 @@ class Solver:
         Returns:
             dict: A dictionary summarizing the solver run including solutions, bounds, times.
         """
-        command = self._command_line
+        command = list(self._command_line)
         for index,elt in enumerate(command):
             if elt=='{{instance}}':
                 command[index] = elt.replace("{{instance}}", str(instance_path))
