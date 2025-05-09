@@ -1,3 +1,9 @@
+## v0.1.1 (2025-05-09)
+
+### Fix
+
+- **solver/solver.py,-utils/placeholder.py**: Fixes a problem with the command line and the placeholders
+
 ## v0.1.0 (2025-05-07)
 
 ### Fix
