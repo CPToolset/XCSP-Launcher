@@ -1,3 +1,9 @@
+## v0.2.1 (2025-05-09)
+
+### Fix
+
+- **solver/solver.py**: prevent duplicate options by copying base command
+
 ## v0.2.0 (2025-05-09)
 
 ### Feat
