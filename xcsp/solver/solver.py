@@ -68,7 +68,8 @@ class Solver:
         self._version = version
         self._command_line = command_line
         self._options = options
-        self._args = []
+        self._args = {}
+        self._other_options = []
         self._alias = alias if alias is not None else []
         self._solutions = None
         self._time_limit = None
@@ -109,7 +110,7 @@ class Solver:
         """
         if time_limit is not None:
             placeholder_time = self._options["time"]
-            self._args.append(placeholder_time.replace("{{value}}", str(time_limit)))
+            self._args["time"] = placeholder_time.replace("{{value}}", str(time_limit))
             self._time_limit = time_limit
 
     def set_seed(self, seed: int | None):
@@ -121,7 +122,7 @@ class Solver:
         """
         if seed is not None:
             placeholder_seed = self._options["seed"]
-            self._args.append(placeholder_seed.replace("{{value}}", str(seed)))
+            self._args["seed"]=placeholder_seed.replace("{{value}}", str(seed))
 
     def all_solutions(self, activate: bool):
         """
@@ -131,7 +132,7 @@ class Solver:
             activate (bool): True to collect all solutions.
         """
         if activate:
-            self._args.append(self._options["all_solutions"])
+            self._args["all_solutions"] = self._options["all_solutions"]
 
     def set_limit_number_of_solutions(self, limit: int | None):
         """
@@ -142,7 +143,7 @@ class Solver:
         """
         if limit is not None and limit > 0:
             placeholder_limit = self._options["number_of_solutions"]
-            self._args.append(placeholder_limit.replace("{{value}}", str(limit)))
+            self._args["number_of_solutions"]=placeholder_limit.replace("{{value}}", str(limit))
 
     def set_collect_intermediate_solutions(self, activate: bool):
         """
@@ -153,7 +154,7 @@ class Solver:
         """
         if activate:
             self._print_intermediate_assignment = activate
-            self._args.append(self._options["print_intermediate_assignment"])
+            self._args["print_intermediate_assignment"] = self._options["print_intermediate_assignment"]
 
     def add_complementary_options(self, options):
         """
@@ -162,7 +163,7 @@ class Solver:
         Args:
             options (list): List of additional options to append.
         """
-        self._args.extend(options)
+        self._other_options.extend(options)
 
     def set_output(self, output):
         """
@@ -224,7 +225,8 @@ class Solver:
         for index,elt in enumerate(command):
             if elt=='{{instance}}':
                 command[index] = elt.replace("{{instance}}", str(instance_path))
-        command.extend(self._args)
+        command.extend(self._args.values())
+        command.extend(self._other_options)
         logger.info(f"Launching solver: {command}")
 
         logger.debug("Each elt of command line : " +' '.join([f"'{elt}'" for elt in command]))
