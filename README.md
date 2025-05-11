@@ -33,7 +33,7 @@ It provides a streamlined way to manage solvers, automate their compilation, and
 You can install `xcsp-launcher` via PyPI:
 
 ```bash
-pip install xcsp-launcher
+pip install xcsp
 ```
 
 Or from source:
