@@ -1,3 +1,14 @@
+## v0.3.0 (2025-05-11)
+
+### Feat
+
+- **commands/solver.py,-solver/solver.py**: Decompress LZMA file before launching solver
+
+### Fix
+
+- **solver/solver.py**: Check if the key of the default option is present
+- **placeholder.py**: strip options adding to the command line
+
 ## v0.2.1 (2025-05-09)
 
 ### Fix
