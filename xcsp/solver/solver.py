@@ -108,7 +108,7 @@ class Solver:
         Args:
             time_limit (int | None): Time limit in seconds, or None for unlimited.
         """
-        if time_limit is not None:
+        if time_limit is not None and "time" in self._options:
             placeholder_time = self._options["time"]
             self._args["time"] = placeholder_time.replace("{{value}}", str(time_limit))
             self._time_limit = time_limit
@@ -120,7 +120,7 @@ class Solver:
         Args:
             seed (int | None): Random seed value.
         """
-        if seed is not None:
+        if seed is not None and "seed" in self._options:
             placeholder_seed = self._options["seed"]
             self._args["seed"]=placeholder_seed.replace("{{value}}", str(seed))
 
@@ -131,7 +131,7 @@ class Solver:
         Args:
             activate (bool): True to collect all solutions.
         """
-        if activate:
+        if activate and "all_solutions" in self._options:
             self._args["all_solutions"] = self._options["all_solutions"]
 
     def set_limit_number_of_solutions(self, limit: int | None):
@@ -141,7 +141,7 @@ class Solver:
         Args:
             limit (int | None): Maximum number of solutions, or None for unlimited.
         """
-        if limit is not None and limit > 0:
+        if limit is not None and limit > 0 and "number_of_solutions" in self._options:
             placeholder_limit = self._options["number_of_solutions"]
             self._args["number_of_solutions"]=placeholder_limit.replace("{{value}}", str(limit))
 
@@ -152,7 +152,7 @@ class Solver:
         Args:
             activate (bool): True to collect intermediate solutions.
         """
-        if activate:
+        if activate and "print_intermediate_assignment" in self._options:
             self._print_intermediate_assignment = activate
             self._args["print_intermediate_assignment"] = self._options["print_intermediate_assignment"]
 
