@@ -6,11 +6,16 @@ controlling output behavior, passing solver-specific options, and listing availa
 """
 import json
 import os
+from pathlib import Path
+
 from loguru import logger
 from xcsp.solver.solver import Solver
 from xcsp.utils.log import unknown_command
 from rich.console import Console
 from rich.table import Table
+
+from xcsp.utils.lzma import decompress_lzma_file
+
 
 def list_solvers(args):
     table: Table = Table(title="Solver List")
@@ -18,14 +23,14 @@ def list_solvers(args):
     table.add_column("Name", justify="center")
     table.add_column("ID", justify="center")
     table.add_column("Version", justify="center")
-    table.add_column("Command Line",justify="left", )
-    table.add_column("Alias",justify="left", )
+    table.add_column("Command Line", justify="left", )
+    table.add_column("Alias", justify="left", )
 
     available = Solver.available_solvers()
-    if len(available)==0:
+    if len(available) == 0:
         logger.info("No solver available.")
         if args["json_output"]:
-            print(json.dumps([],))
+            print(json.dumps([], ))
         return
     if not args["json_output"]:
         for k, s in available.items():
@@ -33,28 +38,38 @@ def list_solvers(args):
         console = Console(width=200)
         console.print(table)
     else:
-        print(json.dumps([{"id":k,"version":available[k].version,"cmd":available[k].cmd} for k in available.keys()]))
+        print(
+            json.dumps([{"id": k, "version": available[k].version, "cmd": available[k].cmd} for k in available.keys()]))
 
 
 def solve(args):
     logger.debug(args)
-
+    path_instance = Path(args.get("instance"))
+    path_result = path_instance
+    decompress = False
+    if path_instance.suffix == ".lzma":
+        path_result = Path(args.get("tmp_dir")) / path_instance.stem
+        decompress_lzma_file(path_instance, path_result)
+        decompress = True
     s = Solver.create_from_cli(args)
-    s.solve(args.get("instance"), args.get('keep_solver_output'))
+    s.solve(path_result, args.get('keep_solver_output'))
 
+    if decompress:
+        path_result.unlink(missing_ok=True)
 
 def solver_cmd(args):
     """Execute the 'solver' subcommand."""
     if args["solvers"]:
         list_solvers(args)
         return
-    if args.get("all_solutions") and args.get("num_solutions")!=-1:
+    if args.get("all_solutions") and args.get("num_solutions") != -1:
         raise ValueError(
             "Incompatible options: you cannot specify both --all-solutions and --num-solutions simultaneously.\n"
             "Use --all-solutions to find all possible solutions without limit, "
             "or --num-solutions to restrict the number of solutions."
         )
     solve(args)
+
 
 def fill_parser(parser):
     """Register the 'solver' subcommand and its arguments to the parser.
@@ -190,6 +205,7 @@ def fill_parser(parser):
 MAP_COMMAND = {
     "solver": solver_cmd,
 }
+
 
 def manage_command(args):
     """Dispatch and manage subcommands for the XCSP launcher binary.
