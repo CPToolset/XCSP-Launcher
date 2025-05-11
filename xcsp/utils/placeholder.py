@@ -53,7 +53,7 @@ def replace_core_placeholder(cmd, executable, options):
             continue
         if "{{options}}" in r:
             for opt in shlex.split(options):
-                result.append(opt)
+                result.append(opt.strip())
             continue
         result.append(r)
     return result
