@@ -16,24 +16,25 @@ xcsp solver [-h] [--name NAME] [--solver-version SOLVER_VERSION]
             [solver_options ...]
 ```
 
-| Argument | Description                                                            |
-|----------|------------------------------------------------------------------------|
-| `--name` | Name of the solver (e.g., `ace`)                                       |
-| `--solver-version` | Specific version to use (default: `latest`)                            |
-| `--instance` | Path to the `.xml` file representing the XCSP3 instance                |
+| Argument                | Description                                                           |
+|-------------------------|-----------------------------------------------------------------------|
+| `--name`                | Name of the solver (e.g., `ace`)                                      |
+| `--solver-version`      | Specific version to use (default: `latest`)                           |
+| `--instance`            | Path to the `.xml` file representing the XCSP3 instance               |
 | `-a`, `--all-solutions` | Retrieve all solutions (satisfaction) or improving ones (optimization) |
-| `-n`, `--num-solutions` | Stop after a given number of solutions                                 |
-| `-i`, `--intermediate` | Print intermediate assignments during search                           |
-| `-p`, `--parallel` | Number of threads to use for solving                                   |
-| `-r`, `--random-seed` | Fix the seed for reproducibility                                       |
-| `--timeout` | Time limit in seconds                                                  |
-| `--keep-solver-output` | Show solver logs (stdout/stderr), line-prefixed                        |
-| `--json-output` | Print results as JSON instead of standard log output                   |
-| `--stdout`, `--stderr` | Redirect solver output to file or stdout/stderr                        |
-| `--prefix` | Prefix for solver output lines (if shown)                              |
-| `--tmp-dir` | Temporary directory for files generated during solving                 |
-| `--solvers` | Show a list of installed solvers                                       |
-| `solver_options ...` | Extra options passed **after** `--` directly to the solver CLI         |
+| `-n`, `--num-solutions` | Stop after a given number of solutions                                |
+| `-i`, `--intermediate`  | Print intermediate assignments during search                          |
+| `-p`, `--parallel`      | Number of threads to use for solving                                  |
+| `-r`, `--random-seed`   | Fix the seed for reproducibility                                      |
+| `--timeout`             | Time limit in seconds                                                 |
+| `--keep-solver-output`  | Show solver logs (stdout/stderr), line-prefixed                       |
+| `--json-output`         | Print results as JSON instead of standard log output                  |
+| `--stdout`, `--stderr`  | Redirect solver output to file or stdout/stderr                       |
+| `--prefix`              | Prefix for solver output lines (if shown)                             |
+| `--tmp-dir`             | Temporary directory for files generated during solving                |
+| `--check`               | Check the last assignment found by the solver.                        |
+| `--solvers`             | Show a list of installed solvers                                      |
+| `solver_options ...`    | Extra options passed **after** `--` directly to the solver CLI        |
 
 ---
 

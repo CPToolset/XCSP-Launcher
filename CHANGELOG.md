@@ -3,7 +3,7 @@
 ### Feat
 
 - **xcsp**: Check solution from CLI.
-- **xcsp/**: Solution checker for API for the moment
+- **xcsp/**: Check solution with API
 
 ## v0.3.0 (2025-05-11)
 
