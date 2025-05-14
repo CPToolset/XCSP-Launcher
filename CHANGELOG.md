@@ -1,3 +1,10 @@
+## v0.4.0 (2025-05-14)
+
+### Feat
+
+- **xcsp**: Check solution from CLI.
+- **xcsp/**: Solution checker for API for the moment
+
 ## v0.3.0 (2025-05-11)
 
 ### Feat
