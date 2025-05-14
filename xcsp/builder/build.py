@@ -135,7 +135,7 @@ class ManualBuildStrategy(BuildStrategy):
         success = False
 
         with open(log_path, "a") as log_file:
-            log_file.write(f"\n--- Trying manual build ---\n")
+            log_file.write("\n--- Trying manual build ---\n")
             logger.info("Trying manual build")
 
             for index, step in enumerate(build_steps):

@@ -12,6 +12,7 @@ It supports:
 import enum
 import json
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -23,6 +24,7 @@ from loguru import logger
 
 from xcsp.solver.cache import CACHE
 from xcsp.utils.json import CustomEncoder
+from xcsp.utils.paths import get_system_tools_dir
 
 ANSWER_PREFIX = "s" + chr(32)
 OBJECTIVE_PREFIX = "o" + chr(32)
@@ -40,6 +42,12 @@ class ResultStatusEnum(enum.Enum):
     TIMEOUT = "TIMEOUT"
     ERROR = "ERROR"
     MEMOUT = "MEMOUT"
+
+
+class CheckStatus(enum.Enum):
+    NO_CHECK = "NO CHECK"
+    VALID = "VALID"
+    INVALID = "INVALID"
 
 
 class Solver:
@@ -122,7 +130,7 @@ class Solver:
         """
         if seed is not None and "seed" in self._options:
             placeholder_seed = self._options["seed"]
-            self._args["seed"]=placeholder_seed.replace("{{value}}", str(seed))
+            self._args["seed"] = placeholder_seed.replace("{{value}}", str(seed))
 
     def all_solutions(self, activate: bool):
         """
@@ -143,7 +151,7 @@ class Solver:
         """
         if limit is not None and limit > 0 and "number_of_solutions" in self._options:
             placeholder_limit = self._options["number_of_solutions"]
-            self._args["number_of_solutions"]=placeholder_limit.replace("{{value}}", str(limit))
+            self._args["number_of_solutions"] = placeholder_limit.replace("{{value}}", str(limit))
 
     def set_collect_intermediate_solutions(self, activate: bool):
         """
@@ -158,12 +166,14 @@ class Solver:
 
     def add_complementary_options(self, options):
         """
-        Add additional command-line options manually.
+        Manually set additional command-line options for the solver.
+
+        This method replaces any previously set complementary options with the new list provided.
 
         Args:
-            options (list): List of additional options to append.
+            options (list of str): A list of additional command-line arguments to be passed to the solver.
         """
-        self._other_options.extend(options)
+        self._other_options = options
 
     def set_output(self, output):
         """
@@ -202,12 +212,14 @@ class Solver:
         self._json_output = activate
 
     def objective_value(self):
-        return self._solutions["bounds"][-1]["value"] if self._solutions is not None and self._solutions["bounds"] else None
+        return self._solutions["bounds"][-1]["value"] if self._solutions is not None and self._solutions[
+            "bounds"] else None
 
-    def status(self)->ResultStatusEnum:
-        return self._solutions["status"] if self._solutions is not None and self._solutions["status"] else ResultStatusEnum.UNKNOWN
+    def status(self) -> ResultStatusEnum:
+        return self._solutions["status"] if self._solutions is not None and self._solutions[
+            "status"] else ResultStatusEnum.UNKNOWN
 
-    def solve(self, instance_path, keep_solver_output=False):
+    def solve(self, instance_path, keep_solver_output=False, check=True):
         """
         Launch and monitor the solver on the given instance.
 
@@ -222,14 +234,14 @@ class Solver:
             dict: A dictionary summarizing the solver run including solutions, bounds, times.
         """
         command = list(self._command_line)
-        for index,elt in enumerate(command):
-            if elt=='{{instance}}':
+        for index, elt in enumerate(command):
+            if elt == '{{instance}}':
                 command[index] = elt.replace("{{instance}}", str(instance_path))
         command.extend(self._args.values())
         command.extend(self._other_options)
         logger.info(f"Launching solver: {command}")
 
-        logger.debug("Each elt of command line : " +' '.join([f"'{elt}'" for elt in command]))
+        logger.debug("Each elt of command line : " + ' '.join([f"'{elt}'" for elt in command]))
 
         process = psutil.Popen(
             command,
@@ -307,6 +319,56 @@ class Solver:
             "wall_clock_time": final_wall_clock_time,
             "cpu_time": final_cpu_time
         }
+        solution_check_status = CheckStatus.NO_CHECK
+        if check and self._solutions is not None and len(self._solutions["assignments"]) > 0:
+            logger.info("Checking solution....")
+            solution_checker_jar = get_system_tools_dir() / "xcsp3-solutionChecker-2.5.jar"
+            last_solution = self._solutions["assignments"][-1]["solution"]
+            cmd_line = [shutil.which("java"), "-jar", solution_checker_jar, instance_path]
+            logger.info(cmd_line)
+            process_check = psutil.Popen(
+                cmd_line,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.PIPE,
+                text=True,
+            )
+            wall_start_check = time.time()
+            cpu_start_check = psutil.cpu_times()
+
+            try:
+                stdout, stderr = process_check.communicate(input=last_solution)
+                if keep_solver_output:
+                    for line in stdout.splitlines():
+                        line = line.strip()
+                        if self._prefix:
+                            print(f"{self._prefix} {line}", file=self._stdout)
+                        else:
+                            print(line, file=self._stdout)
+                    for line in stderr.splitlines():
+                        line = line.strip()
+                        print(line, file=self._stderr)
+                process_check.wait()
+            except Exception as e:
+                logger.exception("An error occurred during solver execution")
+                process_check.kill()
+                raise e
+            wall_end_check = time.time()
+            cpu_end_check = psutil.cpu_times()
+
+            final_wall_clock_time_check = wall_end_check - wall_start_check
+            final_cpu_time_check = (cpu_end_check.user - cpu_start_check.user) + (
+                        cpu_end_check.system - cpu_start_check.system)
+
+            if process_check.returncode != 0:
+                solution_check_status = CheckStatus.INVALID
+            elif process_check.returncode == 0:
+                solution_check_status = CheckStatus.VALID
+
+            self._solutions["assignments"][-1]["status_check"] = solution_check_status
+
+            logger.info(
+                f"Solution checked completed. Wall-clock time: {final_wall_clock_time_check:.2f}s | CPU time: {final_cpu_time_check:.2f}s")
 
         if self._json_output:
             print(json.dumps(self._solutions, indent=2, cls=CustomEncoder))
@@ -402,7 +464,7 @@ class Solver:
         s.set_prefix(args.get("prefix"))
         s.set_json_output(args.get("json_output"))
         s.all_solutions(args.get("all_solutions"))
-        s.add_complementary_options(args.get('solver_options',list()))
+        s.add_complementary_options(args.get('solver_options', list()))
         return s
 
     def _print_final_summary(self, status, bounds, assignments, final_wall_clock_time, final_cpu_time):

@@ -41,7 +41,7 @@ def bootstrap(argument_parser):
     system_path = get_system_config_dir()
     start_time = timer()
     logger.info(system_path)
-    for file in tqdm(list(system_path.glob(f"*.solver.yaml"))):
+    for file in tqdm(list(system_path.glob("*.solver.yaml"))):
         start_solver = timer()
         logger.info(f"Installing solver {str(file)}...")
         arguments = vars(argument_parser.parse_args(f"install -c {file.absolute()}".split()))
@@ -129,9 +129,8 @@ def main():
     argument_parser, args = parse_arguments()
     init_log(args["level"])
 
-    if not args["bootstrap"]:
-        if check_bootstrap():
-            bootstrap(argument_parser)
+    if not args["bootstrap"] and check_bootstrap():
+        bootstrap(argument_parser)
     # If the help is asked, we display it and exit.
     if args['help']:
         display_help(argument_parser)

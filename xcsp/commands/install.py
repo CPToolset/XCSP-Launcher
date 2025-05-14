@@ -243,7 +243,7 @@ class Installer:
 
     def _pull(self):
         pull_start = timer()
-        logger.info(f"Pulling solver...")
+        logger.info("Pulling solver...")
         o = self._repo.remotes.origin
         o.pull()
         logger.info(f"Pulling finished {pull_start - self._start_time:.2f} seconds.")
@@ -308,7 +308,7 @@ class Installer:
                     logger.info(f"Restoring original Git reference: {original_ref}")
                     self._repo.git.checkout(original_ref)
         logger.info(f"Building completed in {timer() - build_start:.2f} seconds.")
-        logger.info(f"Generating cache of solver...")
+        logger.info("Generating cache of solver...")
         Cache.save_cache(CACHE)
         logger.info(f"Installation completed in {timer() - self._start_time:.2f} seconds.")
 

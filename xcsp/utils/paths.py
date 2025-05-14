@@ -60,6 +60,25 @@ def get_system_config_dir() -> Path:
     else:
         return Path(f"/usr/share/{__title__}/configs")
 
+
+def get_system_tools_dir() -> Path:
+    """Return the system-wide directory for external tools.
+
+    This depends on the operating system:
+    - Windows: C:/Program Files/<AppName>/tools
+    - macOS: /usr/local/share/<AppName>/tools
+    - Linux: /usr/share/<AppName>/tools
+
+    Returns:
+        Path: System configuration directory path.
+    """
+    if sys.platform == "win32":
+        return Path(f"C:/Program Files/{__title__}/tools")  # TODO: Possibly allow custom installation paths?
+    elif sys.platform == "darwin":
+        return Path(f"/usr/local/share/{__title__}/tools")
+    else:
+        return Path(f"/usr/share/{__title__}/tools")
+
 def print_path_summary():
     """Print a summary of important XCSP Launcher paths using Rich."""
     console = Console(width=200)
