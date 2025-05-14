@@ -52,7 +52,7 @@ def solve(args):
         decompress_lzma_file(path_instance, path_result)
         decompress = True
     s = Solver.create_from_cli(args)
-    s.solve(path_result, args.get('keep_solver_output'))
+    s.solve(path_result, args.get('keep_solver_output'), args['check'])
 
     if decompress:
         path_result.unlink(missing_ok=True)
@@ -184,6 +184,15 @@ def fill_parser(parser):
             "Temporary working directory used to store intermediate files "
             "(e.g., compiled instances, solver outputs). "
             "Defaults to the current working directory."
+        ),
+    )
+
+    parser_solver.add_argument(
+        "--check",
+        default=False,
+        action="store_true",
+        help=(
+            "Check the last solution using XCSP solution checker."
         ),
     )
 

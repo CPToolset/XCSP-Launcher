@@ -219,7 +219,7 @@ class Solver:
         return self._solutions["status"] if self._solutions is not None and self._solutions[
             "status"] else ResultStatusEnum.UNKNOWN
 
-    def solve(self, instance_path, keep_solver_output=False, check=True):
+    def solve(self, instance_path, keep_solver_output=False, check=False):
         """
         Launch and monitor the solver on the given instance.
 
