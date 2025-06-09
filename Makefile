@@ -28,7 +28,6 @@ build:
 
 pyinstaller: build
 	pyinstaller --onefile --name $(BIN_NAME) --paths=. $(HIDDEN_IMPORTS) ${SRC} $(COLLECT_ALL)
-
 # Création du .deb avec fpm
 deb: $(DIST_DIR)/$(BIN_NAME)
 	echo ${VERSION}
