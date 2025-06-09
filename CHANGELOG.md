@@ -1,3 +1,13 @@
+## v0.5.0 (2025-06-09)
+
+### Feat
+
+- **solver.py**: Enforce timeout by introducing a dedicated thread for timeout management
+
+### Fix
+
+- **main.py**: Fail gracefully if no subcommand is provided
+
 ## v0.4.0 (2025-05-14)
 
 ### Feat
