@@ -17,4 +17,4 @@ __version__ = '0.4.0-a0'
 __author__ = 'Thibault Falque, Romain Wallon'
 __email__ = "wallon@cril.fr"
 __license__ = 'LGPLv3+'
-__copyright__ = '2019-205 - Univ Artois & CNRS, University of Luxembourg'
+__copyright__ = '2019-2025 - Univ Artois & CNRS, University of Luxembourg'
