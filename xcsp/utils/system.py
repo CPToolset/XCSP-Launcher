@@ -1,5 +1,5 @@
 import platform
-
+from loguru import logger
 def is_system_compatible(system_config) -> bool:
     """
     Check if the current system is compatible with the given system config.
@@ -25,3 +25,9 @@ def is_system_compatible(system_config) -> bool:
     normalized_config = {s.strip().lower() for s in system_config}
 
     return "all" in normalized_config or current_system in normalized_config
+
+
+def kill_process(process, timeout):
+    if process.is_running():
+        logger.warning(f"Solver exceeded time limit of {timeout}s. Killing process.")
+        process.kill()
