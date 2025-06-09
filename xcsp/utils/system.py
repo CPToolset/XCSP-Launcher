@@ -1,5 +1,6 @@
 import platform
 from loguru import logger
+import psutil
 def is_system_compatible(system_config) -> bool:
     """
     Check if the current system is compatible with the given system config.
@@ -28,6 +29,16 @@ def is_system_compatible(system_config) -> bool:
 
 
 def kill_process(process, timeout):
-    if process.is_running():
-        logger.warning(f"Solver exceeded time limit of {timeout}s. Killing process.")
-        process.kill()
+    try:
+        if process.is_running():
+            logger.warning(f"Solver exceeded time limit of {timeout}s. Killing process.")
+            process.kill()
+            logger.info(f"Process killed successfully after exceeding time limit.")
+        else:
+            logger.info("Process already terminated before timeout.")
+    except psutil.NoSuchProcess:
+        logger.error("No such process found when attempting to kill it.")
+    except psutil.AccessDenied:
+        logger.error("Permission denied while trying to kill the process.")
+    except Exception as e:
+        logger.exception(f"An error occurred while trying to kill the process: {e}")
