@@ -38,15 +38,19 @@ def discover_and_fill_parsers(package_name, subparser):
 
 
 def bootstrap(argument_parser):
-    system_path = get_system_config_dir()
+    system_paths = get_system_config_dir()
     start_time = timer()
-    logger.info(system_path)
-    for file in tqdm(list(system_path.glob("*.solver.yaml"))):
-        start_solver = timer()
-        logger.info(f"Installing solver {str(file)}...")
-        arguments = vars(argument_parser.parse_args(f"install -c {file.absolute()}".split()))
-        manage_subcommand(arguments)
-        logger.info(f"Finished installing solver...{(timer() - start_solver):.2f} seconds")
+    logger.info(system_paths)
+    for sp in system_paths:
+        if not sp.exists():
+            logger.warning(f'System config path {sp} not exists.')
+            continue
+        for file in tqdm(list(sp.glob("*.solver.yaml"))):
+            start_solver = timer()
+            logger.info(f"Installing solver {str(file)}...")
+            arguments = vars(argument_parser.parse_args(f"install -c {file.absolute()}".split()))
+            manage_subcommand(arguments)
+            logger.info(f"Finished installing solver...{(timer() - start_solver):.2f} seconds")
     logger.info(f"Finished bootstrap command...{(timer() - start_time):.2f} seconds")
 
 
@@ -147,6 +151,10 @@ def main():
 
     if args['info']:
         info(argument_parser)
+        sys.exit()
+    
+    if args.get('subcommand', None) is None:
+        display_help(argument_parser)
         sys.exit()
 
     manage_subcommand(args)
