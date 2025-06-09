@@ -1,3 +1,9 @@
+## v0.5.1 (2025-06-09)
+
+### Fix
+
+- **system.py**: Improves error message when trying to kill a process after a timeout
+
 ## v0.5.0 (2025-06-09)
 
 ### Feat
