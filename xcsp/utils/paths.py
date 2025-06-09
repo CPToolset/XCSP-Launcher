@@ -54,11 +54,11 @@ def get_system_config_dir() -> Path:
         Path: System configuration directory path.
     """
     if sys.platform == "win32":
-        return Path(f"C:/Program Files/{__title__}/configs")  # TODO: Possibly allow custom installation paths?
+        return [Path(f"C:/Program Files/{__title__}/configs")] # TODO: Possibly allow custom installation paths?
     elif sys.platform == "darwin":
-        return Path(f"/usr/local/share/{__title__}/configs")
+        return [Path(f"/usr/local/share/{__title__}/configs"),Path(f'/opt/homebrew/{__title__}/configs')]
     else:
-        return Path(f"/usr/share/{__title__}/configs")
+        return [Path(f"/usr/share/{__title__}/configs")]
 
 
 def get_system_tools_dir() -> Path:
@@ -73,11 +73,11 @@ def get_system_tools_dir() -> Path:
         Path: System configuration directory path.
     """
     if sys.platform == "win32":
-        return Path(f"C:/Program Files/{__title__}/tools")  # TODO: Possibly allow custom installation paths?
+        return [Path(f"C:/Program Files/{__title__}/tools")]  # TODO: Possibly allow custom installation paths?
     elif sys.platform == "darwin":
-        return Path(f"/usr/local/share/{__title__}/tools")
+        return [Path(f"/usr/local/share/{__title__}/tools"),Path(f'/opt/homebrew/{__title__}/configs')]
     else:
-        return Path(f"/usr/share/{__title__}/tools")
+        return [Path(f"/usr/share/{__title__}/tools")]
 
 def print_path_summary():
     """Print a summary of important XCSP Launcher paths using Rich."""
