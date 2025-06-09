@@ -15,6 +15,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 from typing import Dict, List
@@ -25,6 +26,7 @@ from loguru import logger
 from xcsp.solver.cache import CACHE
 from xcsp.utils.json import CustomEncoder
 from xcsp.utils.paths import get_system_tools_dir
+from xcsp.utils.system import kill_process
 
 ANSWER_PREFIX = "s" + chr(32)
 OBJECTIVE_PREFIX = "o" + chr(32)
@@ -250,6 +252,11 @@ class Solver:
             text=True,
         )
 
+        timeout_trigger = None
+        if self._time_limit is not None:
+            timeout_trigger = threading.Timer(self._time_limit, kill_process, process=process, timeout=self._time_limit)
+            timeout_trigger.start()
+
         wall_start = time.time()
         cpu_start = psutil.cpu_times()
 
@@ -301,6 +308,9 @@ class Solver:
 
             process.wait()
 
+            if timeout_trigger is not None:
+                timeout_trigger.cancel()
+
         except Exception as e:
             logger.exception("An error occurred during solver execution")
             process.kill()
@@ -322,53 +332,65 @@ class Solver:
         solution_check_status = CheckStatus.NO_CHECK
         if check and self._solutions is not None and len(self._solutions["assignments"]) > 0:
             logger.info("Checking solution....")
-            solution_checker_jar = get_system_tools_dir() / "xcsp3-solutionChecker-2.5.jar"
-            last_solution = self._solutions["assignments"][-1]["solution"]
-            cmd_line = [shutil.which("java"), "-jar", solution_checker_jar, instance_path]
-            logger.info(cmd_line)
-            process_check = psutil.Popen(
-                cmd_line,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.PIPE,
-                text=True,
-            )
-            wall_start_check = time.time()
-            cpu_start_check = psutil.cpu_times()
+            solution_checker_jar = None 
 
-            try:
-                stdout, stderr = process_check.communicate(input=last_solution)
-                if keep_solver_output:
-                    for line in stdout.splitlines():
-                        line = line.strip()
-                        if self._prefix:
-                            print(f"{self._prefix} {line}", file=self._stdout)
-                        else:
-                            print(line, file=self._stdout)
-                    for line in stderr.splitlines():
-                        line = line.strip()
-                        print(line, file=self._stderr)
-                process_check.wait()
-            except Exception as e:
-                logger.exception("An error occurred during solver execution")
-                process_check.kill()
-                raise e
-            wall_end_check = time.time()
-            cpu_end_check = psutil.cpu_times()
+            for st in get_system_tools_dir():
+                if not st.exists():
+                    continue
+                p = get_system_tools_dir() / "xcsp3-solutionChecker-2.5.jar"
+                if not p.exists():
+                    continue
+                solution_checker_jar=p
 
-            final_wall_clock_time_check = wall_end_check - wall_start_check
-            final_cpu_time_check = (cpu_end_check.user - cpu_start_check.user) + (
-                        cpu_end_check.system - cpu_start_check.system)
+            if p is not None:
+                last_solution = self._solutions["assignments"][-1]["solution"]
+                cmd_line = [shutil.which("java"), "-jar", solution_checker_jar, instance_path]
+                logger.info(cmd_line)
+                process_check = psutil.Popen(
+                    cmd_line,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=subprocess.PIPE,
+                    text=True,
+                )
+                wall_start_check = time.time()
+                cpu_start_check = psutil.cpu_times()
 
-            if process_check.returncode != 0:
-                solution_check_status = CheckStatus.INVALID
-            elif process_check.returncode == 0:
-                solution_check_status = CheckStatus.VALID
+                try:
+                    stdout, stderr = process_check.communicate(input=last_solution)
+                    if keep_solver_output:
+                        for line in stdout.splitlines():
+                            line = line.strip()
+                            if self._prefix:
+                                print(f"{self._prefix} {line}", file=self._stdout)
+                            else:
+                                print(line, file=self._stdout)
+                        for line in stderr.splitlines():
+                            line = line.strip()
+                            print(line, file=self._stderr)
+                    process_check.wait()
+                except Exception as e:
+                    logger.exception("An error occurred during solver execution")
+                    process_check.kill()
+                    raise e
+                wall_end_check = time.time()
+                cpu_end_check = psutil.cpu_times()
 
-            self._solutions["assignments"][-1]["status_check"] = solution_check_status
+                final_wall_clock_time_check = wall_end_check - wall_start_check
+                final_cpu_time_check = (cpu_end_check.user - cpu_start_check.user) + (
+                            cpu_end_check.system - cpu_start_check.system)
 
-            logger.info(
-                f"Solution checked completed. Wall-clock time: {final_wall_clock_time_check:.2f}s | CPU time: {final_cpu_time_check:.2f}s")
+                if process_check.returncode != 0:
+                    solution_check_status = CheckStatus.INVALID
+                elif process_check.returncode == 0:
+                    solution_check_status = CheckStatus.VALID
+
+                self._solutions["assignments"][-1]["status_check"] = solution_check_status
+
+                logger.info(
+                    f"Solution checked completed. Wall-clock time: {final_wall_clock_time_check:.2f}s | CPU time: {final_cpu_time_check:.2f}s")
+            else:
+                logger.error('Impossible to find the jar of the solution checker.')
 
         if self._json_output:
             print(json.dumps(self._solutions, indent=2, cls=CustomEncoder))
