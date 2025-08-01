@@ -7,6 +7,7 @@ logs, solver installations, solver configurations, binaries, and user preference
 import os
 import sys
 from pathlib import Path
+from typing import Iterable
 
 from platformdirs import user_cache_dir, user_config_dir, user_data_dir
 from rich.console import Console
@@ -42,7 +43,7 @@ def get_user_preferences_dir() -> Path:
     """Return the directory for storing user preferences (e.g., config.yaml, settings)."""
     return Path(user_config_dir(__title__, __title__))
 
-def get_system_config_dir() -> Path:
+def get_system_config_dir() -> list[Path]:
     """Return the system-wide directory for installed solver configurations.
 
     This depends on the operating system:
@@ -61,7 +62,7 @@ def get_system_config_dir() -> Path:
         return [Path(f"/usr/share/{__title__}/configs")]
 
 
-def get_system_tools_dir() -> Path:
+def get_system_tools_dir() -> Iterable[Path]:
     """Return the system-wide directory for external tools.
 
     This depends on the operating system:
