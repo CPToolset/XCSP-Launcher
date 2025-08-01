@@ -118,9 +118,10 @@ def build_cmd(config, bin_executable):
     result_cmd = []
     if config["command"].get("prefix"):
         result_cmd.extend(replace_placeholder(config["command"]["prefix"]))
-    if options := config["command"].get("always_include_options"):
-        template = config["command"]["template"]
-        result_cmd.extend(replace_core_placeholder(template, bin_executable, options))
+
+    template = config["command"]["template"]
+    options = config["command"].get("always_include_options")
+    result_cmd.extend(replace_core_placeholder(template, bin_executable, options))
     return result_cmd
 
 
@@ -162,7 +163,7 @@ class Installer:
             logger.info(
                 f"Repository not cloned, path '{self._path_solver}' already exists. {timer() - self._start_time:.2f} seconds.")
             return
-        self._repo = Repo.clone_from(self._url, self._path_solver)
+        self._repo = Repo.clone_from(self._url, self._path_solver, recursive=True)
         logger.info(f"Repository cloned in {timer() - self._start_time:.2f} seconds.")
 
     def _resolve_config(self):
@@ -299,6 +300,7 @@ class Installer:
                             "cmd": build_cmd(self._config, bin_dir / executable_path.name),
                             "alias": v.get("alias", list())
                         }
+                    logger.debug(executable_path.name)
 
                 except OSError as e:
                     logger.error(
