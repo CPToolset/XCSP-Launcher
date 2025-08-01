@@ -11,14 +11,13 @@ It supports:
 
 import enum
 import json
-import shlex
 import shutil
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import psutil
 from loguru import logger
@@ -26,7 +25,7 @@ from loguru import logger
 from xcsp.solver.cache import CACHE
 from xcsp.utils.json import CustomEncoder
 from xcsp.utils.paths import get_system_tools_dir
-from xcsp.utils.system import kill_process
+from xcsp.utils.system import kill_process, term_process
 
 ANSWER_PREFIX = "s" + chr(32)
 OBJECTIVE_PREFIX = "o" + chr(32)
@@ -70,6 +69,7 @@ class Solver:
             options (dict): Mapping of standard solver options.
             alias (list, optional): List of alternative names for the solver.
         """
+        self._is_timeout = False
         self._prefix = None
         self._stderr = sys.stderr
         self._stdout = sys.stdout
@@ -221,7 +221,16 @@ class Solver:
         return self._solutions["status"] if self._solutions is not None and self._solutions[
             "status"] else ResultStatusEnum.UNKNOWN
 
-    def solve(self, instance_path, keep_solver_output=False, check=False):
+    def set_is_timeout(self,is_timeout: bool):
+        """
+        Set whether the solver run was interrupted by a timeout.
+
+        Args:
+            is_timeout (bool): True if the run was interrupted by a timeout.
+        """
+        self._is_timeout = is_timeout
+
+    def solve(self, instance_path, keep_solver_output=False, check=False, delay=5):
         """
         Launch and monitor the solver on the given instance.
 
@@ -231,13 +240,14 @@ class Solver:
         Args:
             instance_path (str | Path): Path to the XCSP3 instance file.
             keep_solver_output (bool): If True, solver stdout is printed live.
-
+            check (bool): If True, checks the final solution using a solution checker.
         Returns:
             dict: A dictionary summarizing the solver run including solutions, bounds, times.
         """
         command = list(self._command_line)
         for index, elt in enumerate(command):
             if elt == '{{instance}}':
+                logger.debug(f"replace instance in command line by {instance_path}")
                 command[index] = elt.replace("{{instance}}", str(instance_path))
         command.extend(self._args.values())
         command.extend(self._other_options)
@@ -252,9 +262,15 @@ class Solver:
             text=True,
         )
 
+        delay_trigger = None
+        if self._time_limit is not None:
+            delay_trigger = threading.Timer(self._time_limit-delay, term_process, args=(process, self._time_limit-delay, self))
+            delay_trigger.start()
+
+
         timeout_trigger = None
         if self._time_limit is not None:
-            timeout_trigger = threading.Timer(self._time_limit, kill_process, process=process, timeout=self._time_limit)
+            timeout_trigger = threading.Timer(self._time_limit, kill_process, args=(process,self._time_limit, self))
             timeout_trigger.start()
 
         wall_start = time.time()
@@ -284,6 +300,7 @@ class Solver:
                         try:
                             value = int(tokens[1])
                             bounds.append({"value": value, "wall_clock_time": wall_clock_time, "cpu_time": cpu_time})
+                            status = ResultStatusEnum.SATISFIABLE
                             if not self._json_output:
                                 print(f"o {value}")
                         except ValueError:
@@ -337,12 +354,12 @@ class Solver:
             for st in get_system_tools_dir():
                 if not st.exists():
                     continue
-                p = get_system_tools_dir() / "xcsp3-solutionChecker-2.5.jar"
+                p = st / "xcsp3-solutionChecker-2.5.jar"
                 if not p.exists():
                     continue
                 solution_checker_jar=p
 
-            if p is not None:
+            if solution_checker_jar is not None:
                 last_solution = self._solutions["assignments"][-1]["solution"]
                 cmd_line = [shutil.which("java"), "-jar", solution_checker_jar, instance_path]
                 logger.info(cmd_line)
@@ -396,9 +413,11 @@ class Solver:
             print(json.dumps(self._solutions, indent=2, cls=CustomEncoder))
         else:
             print(f"s {status.value}")
-        if process.returncode != 0:
+        if process.returncode != 0 and not self._is_timeout:
             logger.error(f"An error occurred during solver execution. Solver exit with code {process.returncode}")
             status = ResultStatusEnum.ERROR
+        elif self._is_timeout:
+            status = ResultStatusEnum.TIMEOUT
         else:
             logger.info(
                 f"Resolution completed successfully. Wall-clock time: {final_wall_clock_time:.2f}s | CPU time: {final_cpu_time:.2f}s")
@@ -430,7 +449,7 @@ class Solver:
         alias_solvers = dict()
         for k, v in solvers.items():
             for a in v.alias:
-                alias_solvers[f"{v.name}@{a}"] = v
+                alias_solvers[f"{v.name.upper()}@{a}"] = v
         logger.debug(solvers)
         logger.debug(alias_solvers)
         key = f"{name_solver.upper()}@{version_solver}"
@@ -451,7 +470,7 @@ class Solver:
         solvers = dict()
         for k, s in CACHE.items():
             for vv in s["versions"].keys():
-                solvers[f"{s['name_solver']}@{vv}"] = (
+                solvers[f"{s['name_solver'].upper()}@{vv}"] = (
                     Solver(s["name_solver"], s["id_solver"], vv, s["versions"][vv]['cmd'],
                            s["versions"][vv]['options'], s["versions"][vv].get('alias')))
         return solvers
