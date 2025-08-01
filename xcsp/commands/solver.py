@@ -45,17 +45,23 @@ def list_solvers(args):
 def solve(args):
     logger.debug(args)
     path_instance = Path(args.get("instance"))
-    path_result = path_instance
+    decompress, path_result = decompress_or_return_path(args, path_instance)
+    s = Solver.create_from_cli(args)
+    s.solve(path_result, args.get('keep_solver_output'), args['check'], args["delay"])
+
+    if decompress:
+        path_result.unlink(missing_ok=True)
+
+
+def decompress_or_return_path(args, path_instance):
     decompress = False
+    path_result = path_instance
     if path_instance.suffix == ".lzma":
         path_result = Path(args.get("tmp_dir")) / path_instance.stem
         decompress_lzma_file(path_instance, path_result)
         decompress = True
-    s = Solver.create_from_cli(args)
-    s.solve(path_result, args.get('keep_solver_output'), args['check'])
+    return decompress, path_result
 
-    if decompress:
-        path_result.unlink(missing_ok=True)
 
 def solver_cmd(args):
     """Execute the 'solver' subcommand."""
@@ -91,7 +97,7 @@ def fill_parser(parser):
         help="Human-readable name of the solver."
     )
     parser_solver.add_argument(
-        "--solver-version",
+        "-sv","--solver-version",
         type=str,
         required=False,
         default="latest",
@@ -142,9 +148,16 @@ def fill_parser(parser):
         default=1800
     )
 
+    parser_solver.add_argument(
+        "-d","--delay",
+        type=int,
+        help="At timeout minus delay, the solver receive a SIGTERM signal. After delay seconds, it receives a SIGKILL signal.",
+        default=5
+    )
+
     # --- Output behavior ---
     parser_solver.add_argument(
-        "--keep-solver-output",
+        "-k","--keep-solver-output",
         default=False,
         action="store_true",
         help="If set, keeps and displays the solver's stdout/stderr in the CLI output, "
@@ -152,32 +165,32 @@ def fill_parser(parser):
     )
 
     parser_solver.add_argument(
-        "--json-output",
+        "-j","--json-output",
         default=False,
         action="store_true",
         help="If set, we collect the output of the solvers and we produce a json."
     )
     parser_solver.add_argument(
-        "--stdout",
+        "-out","--stdout",
         type=str,
         default="stdout",
         help="Target for solver standard output (default: stdout). Use a file path or 'stdout'."
     )
     parser_solver.add_argument(
-        "--stderr",
+        "-err","--stderr",
         type=str,
         default="stderr",
         help="Target for solver standard error (default: stderr). Use a file path or 'stderr'."
     )
     parser_solver.add_argument(
-        "--prefix",
+        "-pre","--prefix",
         type=str,
         default="c",
         help="Prefix to add before each line of solver output when --keep-solver-output is set."
     )
 
     parser_solver.add_argument(
-        "--tmp-dir",
+        "-tmp","--tmp-dir",
         type=str,
         default=os.getcwd(),
         help=(
@@ -188,7 +201,7 @@ def fill_parser(parser):
     )
 
     parser_solver.add_argument(
-        "--check",
+        "-ck","--check",
         default=False,
         action="store_true",
         help=(
