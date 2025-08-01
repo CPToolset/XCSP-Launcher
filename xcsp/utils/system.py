@@ -28,12 +28,13 @@ def is_system_compatible(system_config) -> bool:
     return "all" in normalized_config or current_system in normalized_config
 
 
-def kill_process(process, timeout):
+def kill_process(process, timeout, solver):
     try:
         if process.is_running():
             logger.warning(f"Solver exceeded time limit of {timeout}s. Killing process.")
             process.kill()
             logger.info(f"Process killed successfully after exceeding time limit.")
+            solver.set_is_timeout(True)
         else:
             logger.info("Process already terminated before timeout.")
     except psutil.NoSuchProcess:
@@ -42,3 +43,19 @@ def kill_process(process, timeout):
         logger.error("Permission denied while trying to kill the process.")
     except Exception as e:
         logger.exception(f"An error occurred while trying to kill the process: {e}")
+
+def term_process(process, timeout, solver):
+    try:
+        if process.is_running():
+            logger.warning(f"Send a SIGTERM to process.")
+            process.terminate()
+            logger.info(f"SIGTERM send successfully.")
+            solver.set_is_timeout(True)
+        else:
+            logger.info("Process already terminated before timeout.")
+    except psutil.NoSuchProcess:
+        logger.error("No such process found when attempting to terminate it.")
+    except psutil.AccessDenied:
+        logger.error("Permission denied while trying to terminate the process.")
+    except Exception as e:
+        logger.exception(f"An error occurred while trying to terminate the process: {e}")
