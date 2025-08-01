@@ -6,6 +6,7 @@ It also provides utility functions to execute builds while logging their output.
 """
 import os
 import shlex
+import shutil
 import stat
 import subprocess
 from abc import ABC, abstractmethod
@@ -148,7 +149,7 @@ class ManualBuildStrategy(BuildStrategy):
 
                 cmd = replace_solver_dir_in_list(replace_placeholder(cmd_raw), str(self._path_solver))
                 try:
-                    if not os.access(cmd[0], os.X_OK):
+                    if not shutil.which(cmd[0]) and not os.access(cmd[0], os.X_OK):
                         path = Path(cmd[0])
                         current_mode = path.stat().st_mode
                         path.chmod(current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
