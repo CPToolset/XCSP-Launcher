@@ -14,7 +14,7 @@ from xcsp.utils.log import unknown_command
 from rich.console import Console
 from rich.table import Table
 
-from xcsp.utils.lzma import decompress_lzma_file
+from xcsp.utils.archive import decompress_lzma_file
 
 
 def list_solvers(args):
@@ -43,7 +43,6 @@ def list_solvers(args):
 
 
 def solve(args):
-    logger.debug(args)
     path_instance = Path(args.get("instance"))
     decompress, path_result = decompress_or_return_path(args, path_instance)
     s = Solver.create_from_cli(args)
