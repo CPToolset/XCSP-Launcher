@@ -5,7 +5,6 @@ This module defines strategies to build solver sources either automatically
 It also provides utility functions to execute builds while logging their output.
 """
 import os
-import shlex
 import shutil
 import stat
 import subprocess
@@ -16,8 +15,10 @@ from pathlib import Path
 import psutil
 from loguru import logger
 
-from xcsp.utils.paths import ChangeDirectory, get_cache_dir
+import xcsp.utils.paths as paths
+from xcsp.utils.dict import get_with_fallback
 from xcsp.utils.placeholder import replace_placeholder, replace_solver_dir_in_list, replace_solver_dir_in_str
+from xcsp.utils.system import normalized_system_name
 
 # Mapping of detected build configuration files to standard build commands
 MAP_FILE_BUILD_COMMANDS = {
@@ -90,7 +91,7 @@ class BuildStrategy(ABC):
 
     def build(self) -> bool:
         """Execute the build process inside the solver directory."""
-        with ChangeDirectory(self._path_solver):
+        with paths.ChangeDirectory(self._path_solver):
             return self._internal_build()
 
     @abstractmethod
@@ -103,7 +104,7 @@ class AutoBuildStrategy(BuildStrategy):
 
     def _internal_build(self) -> bool:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_path = Path(get_cache_dir()) / f"solver_build_{timestamp}.log"
+        log_path = Path(paths.get_cache_dir()) / f"solver_build_{timestamp}.log"
         return try_build_from_file(self._config_strategy.builder_file(), log_path)
 
 class ManualBuildStrategy(BuildStrategy):
@@ -114,24 +115,33 @@ class ManualBuildStrategy(BuildStrategy):
 
     def _internal_build(self) -> bool:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        log_path = Path(get_cache_dir()) / f"solver_build_{timestamp}.log"
+        log_path = Path(paths.get_cache_dir()) / f"solver_build_{timestamp}.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
         logger.debug(f"Log of building in {log_path}")
 
         build_config = self._config.get("build", {})
-        build_steps = build_config.get("build_steps")
-        build_command = build_config.get("build_command")
+        build_steps = get_with_fallback(build_config,"default_steps","build_steps",{}) #build_steps for retro compatibility
+        if "build_steps" in build_steps:
+            logger.warning("Using 'build_steps' in configuration is deprecated, use 'default_steps' instead.")
 
+        build_steps = build_config.get("per_os",{}).get(normalized_system_name(),{}).get("steps",None)
+        skip_for_system = build_config.get("per_os",{}).get(normalized_system_name(),{}).get("skip",None)
+
+
+        build_command = build_config.get("build_command")
         # 🧹 Normalisation
         if build_steps is None and build_command:
             if isinstance(build_command, str):
                 build_command = [build_command]
             build_steps = [{"cmd": c} for c in build_command]
 
-        if not build_steps:
-            logger.error("No manual build command specified in configuration.")
+        if not build_steps and not skip_for_system:
+            logger.warning("No manual build command specified in configuration.")
             return False
+        elif skip_for_system:
+            logger.info(f"Skipping manual build for {normalized_system_name()} as per configuration.")
+            return True
 
         success = False
 

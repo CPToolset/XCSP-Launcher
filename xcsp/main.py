@@ -9,14 +9,10 @@ from pyfiglet import Figlet
 from tqdm import tqdm
 
 import xcsp
+from xcsp.commands import manage_subcommand
 from xcsp.utils.bootstrap import check_bootstrap
 from xcsp.utils.log import init_log
 from xcsp.utils.paths import get_system_config_dir, print_path_summary
-
-ALIAS_COMMANDS = {
-    "i": "install",
-    "s": "solver"
-}
 
 
 #############
@@ -80,7 +76,8 @@ def parse_arguments() -> Tuple[ArgumentParser, Dict[str, Any]]:
                         help='shows the version of XCSP launcher being executed',
                         action='store_true')
     parser.add_argument('--bootstrap', help="Install default solver from system configuration.", action='store_true')
-    parser.add_argument('--info', help="Produce a table with different information about the current installation.", action='store_true')
+    parser.add_argument('--info', help="Produce a table with different information about the current installation.",
+                        action='store_true')
     return parser, vars(parser.parse_args())
 
 
@@ -109,19 +106,6 @@ def version() -> None:
     print('Copyright (c)', xcsp.__copyright__)
     print('This program is free software: you can redistribute it and/or modify')
     print('it under the terms of the GNU Lesser General Public License.')
-
-def manage_subcommand(arguments):
-    # Executing the specified Metrics command.
-    command = arguments['subcommand']
-    try:
-        if command in ALIAS_COMMANDS:
-            command = ALIAS_COMMANDS[command]
-        module = importlib.import_module("xcsp.commands." + command.replace("-", "_"))
-        if hasattr(module, 'manage_command'):
-            module.manage_command(arguments)
-    except TypeError as e:
-        logger.error(f"Command '{command}' not found.")
-        logger.error(e)
 
 
 def info(argument_parser):
@@ -152,10 +136,9 @@ def main():
     if args['info']:
         info(argument_parser)
         sys.exit()
-    
+
     if args.get('subcommand', None) is None:
         display_help(argument_parser)
         sys.exit()
 
     manage_subcommand(args)
-

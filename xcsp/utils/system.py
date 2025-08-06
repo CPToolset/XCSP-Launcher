@@ -14,10 +14,7 @@ def is_system_compatible(system_config) -> bool:
     if not system_config:
         return False  # defensive default
 
-    # Normalize current platform
-    current_system = platform.system().lower()  # e.g., "linux", "darwin", "windows"
-    if current_system == "darwin":
-        current_system = "macos"
+    current_system = normalized_system_name()
 
     # Normalize config
     if isinstance(system_config, str):
@@ -26,6 +23,14 @@ def is_system_compatible(system_config) -> bool:
     normalized_config = {s.strip().lower() for s in system_config}
 
     return "all" in normalized_config or current_system in normalized_config
+
+
+def normalized_system_name():
+    # Normalize current platform
+    current_system = platform.system().lower()  # e.g., "linux", "darwin", "windows"
+    if current_system == "darwin":
+        current_system = "macos"
+    return current_system
 
 
 def kill_process(process, timeout, solver):

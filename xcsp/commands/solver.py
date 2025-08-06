@@ -14,7 +14,7 @@ from xcsp.utils.log import unknown_command
 from rich.console import Console
 from rich.table import Table
 
-from xcsp.utils.lzma import decompress_lzma_file
+from xcsp.utils.archive import decompress_lzma_file
 
 
 def list_solvers(args):
@@ -43,14 +43,19 @@ def list_solvers(args):
 
 
 def solve(args):
-    logger.debug(args)
+
     path_instance = Path(args.get("instance"))
     decompress, path_result = decompress_or_return_path(args, path_instance)
-    s = Solver.create_from_cli(args)
-    s.solve(path_result, args.get('keep_solver_output'), args['check'], args["delay"])
-
-    if decompress:
-        path_result.unlink(missing_ok=True)
+    try:
+        s = Solver.create_from_cli(args)
+        s.solve(path_result, args.get('keep_solver_output'), args['check'], args["delay"])
+    except Exception as e:
+        logger.error(f"An error occurred while solving the instance: {e}")
+        logger.exception(e)
+    finally:
+        # Clean up temporary files if decompression was performed
+        if decompress:
+            path_result.unlink(missing_ok=True)
 
 
 def decompress_or_return_path(args, path_instance):

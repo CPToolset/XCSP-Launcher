@@ -3,6 +3,7 @@ import shutil
 MAP_BUILDER = {
     "java": ["maven", "mvn", "gradle", "gradlew", "make"],
     "cpp": ["cmake", "make"],
+    "c":["make"],
     "rust": ["cargo"],
     "python": "python"
 }
@@ -10,6 +11,7 @@ MAP_BUILDER = {
 MAP_LANGUAGE_FILES = {
     "java": ["pom.xml", "build.gradle", "Makefile"],
     "cpp": ["CMakeLists.txt", "Makefile"],
+    "c": ["Makefile"],
     "rust": ["Cargo.toml"],
     "python": ["pyproject.toml", "setup.py"]
 }
