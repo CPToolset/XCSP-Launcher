@@ -9,9 +9,12 @@ import enum
 import os
 import platform
 import shutil
+import tempfile
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from pathlib import Path
+
+import requests
 import yaml
 from git import Repo
 from loguru import logger
@@ -19,12 +22,18 @@ from timeit import default_timer as timer
 
 from xcsp.builder.build import AutoBuildStrategy, ManualBuildStrategy
 from xcsp.builder.check import check_available_builder_for_language, MAP_FILE_LANGUAGE, MAP_LANGUAGE_FILES, MAP_BUILDER
-from xcsp.utils.placeholder import replace_placeholder, replace_core_placeholder, replace_solver_dir_in_str
+from xcsp.utils.archive import ALL_ARCHIVE_EXTENSIONS, extract_archive
+from xcsp.utils.args import at_least_one, at_most_one
+from xcsp.utils.dict import get_with_fallback
+from xcsp.utils.http import resolve_url, download
+from xcsp.utils.placeholder import replace_placeholder, replace_core_placeholder, replace_solver_dir_in_str, \
+    replace_bin_dir_in_str
 from xcsp.solver.cache import CACHE, Cache
-from xcsp.solver.resolver import resolve_config
-from xcsp.utils.paths import get_solver_install_dir, ChangeDirectory, get_solver_bin_dir
+from xcsp.solver.resolver import resolve_config, DEFAULT_EXT
+import xcsp.utils.paths as paths
 from xcsp.utils.log import unknown_command
-from xcsp.utils.system import is_system_compatible
+from xcsp.utils.system import is_system_compatible, normalized_system_name
+from xcsp.utils.versiondir.core import VersionDirectory
 
 
 class RepoSource(enum.Enum):
@@ -128,10 +137,10 @@ def build_cmd(config, bin_executable):
 class Installer:
     """Main class responsible for installing a solver from a repository."""
 
-    def __init__(self, url: str, solver_name: str, id: str, config=None):
+    def __init__(self, url: str, solver_name: str, id_s: str, config=None):
         self._url = url
         self._solver = solver_name
-        self._id = id
+        self._id = id_s
         self._path_solver = None
         self._start_time = timer()
         self._repo = None
@@ -141,8 +150,7 @@ class Installer:
 
     def _init(self):
         """Initialize the solver installation directory."""
-        self._path_solver = Path(get_solver_install_dir()) / self._id
-        # os.makedirs(self._path_solver, exist_ok=True)
+        self._path_solver = Path(paths.get_solver_install_dir()) / self._id
 
         if not self._id in CACHE:
             CACHE[self._id] = {
@@ -151,20 +159,6 @@ class Installer:
                 "id_solver": self._id,
                 "versions": defaultdict(dict),
             }
-
-    def _init_repo(self):
-        self._repo = Repo(self._url)
-
-    def _clone(self):
-        """Clone the solver repository."""
-        logger.info(f"Cloning the solver from {self._url} into {self._path_solver}")
-        if os.path.exists(self._path_solver):
-            self._repo = Repo(self._path_solver)
-            logger.info(
-                f"Repository not cloned, path '{self._path_solver}' already exists. {timer() - self._start_time:.2f} seconds.")
-            return
-        self._repo = Repo.clone_from(self._url, self._path_solver, recursive=True)
-        logger.info(f"Repository cloned in {timer() - self._start_time:.2f} seconds.")
 
     def _resolve_config(self):
         """Resolve and load the solver configuration if available."""
@@ -201,6 +195,7 @@ class Installer:
                 f"No available builders for the detected language '{language}'.")
 
     def _manage_dependency(self):
+        start_dep_time = timer()
         if not self._config:
             return
 
@@ -212,78 +207,117 @@ class Installer:
         logger.info("Managing solver dependencies...")
         for dep in dependencies:
             git_url = dep.get("git")
-            if not git_url:
-                logger.warning("Dependency without 'git' key found. Skipping.")
+            url = dep.get("url")
+            if git_url:
+                self._manage_git_dependency(dep, git_url)
+            elif url and any(url.endswith(ext) for ext in ALL_ARCHIVE_EXTENSIONS):
+                self._manage_archive_dependency(dep, url)
+            elif url:
+                self._manage_file_dependency(dep, url)
+            else:
+                logger.warning(f"Dependency {dep} does not have a valid URL or git repository specified.")
                 continue
 
-            name = git_url.split("/")[-1].replace(".git", "")
-            default_dir = self._path_solver.parent.parent / "deps" / name
-            target_dir = replace_solver_dir_in_str(dep.get("dir"), str(self._path_solver)) if dep.get(
-                "dir") else default_dir
+    def _manage_git_dependency(self, dep, git_url):
+        name = git_url.split("/")[-1].replace(".git", "")
+        default_dir = self._path_solver.parent.parent / "deps" / name
+        target_dir = replace_solver_dir_in_str(dep.get("dir"), str(self._repo.get_source_path)) if dep.get(
+            "dir") else default_dir
+        target_dir = Path(target_dir)
+        target_dir.parent.mkdir(parents=True, exist_ok=True)
+        if target_dir.exists():
+            logger.info(f"Updating existing dependency in: {target_dir}")
+            start_time = timer()
+            try:
+                repo = Repo(target_dir)
+                repo.remotes.origin.pull()
+                logger.success(f"Pulled updates for {name} in {timer() - start_time:.2f}s.")
+            except Exception as e:
+                logger.error(f"Failed to update dependency at {target_dir}: {e}")
+        else:
+            logger.info(f"Cloning dependency '{name}' into: {target_dir}")
+            start_time = timer()
+            try:
+                Repo.clone_from(git_url, target_dir)
+                logger.success(f"Cloned {name} in {timer() - start_time:.2f}s.")
+            except Exception as e:
+                logger.error(f"Failed to clone dependency from {git_url} to {target_dir}: {e}")
 
-            target_dir = Path(target_dir)
-            target_dir.parent.mkdir(parents=True, exist_ok=True)
+    def _manage_archive_dependency(self, dep, url):
+        name = url.split("/")[-1].split(".")[0]
+        default_dir = self._repo.get_source_path().parent / "deps" / name
+        target_dir = replace_solver_dir_in_str(dep.get("dir"), str(self._repo.get_source_path())) if dep.get(
+            "dir") else default_dir
+        target_dir = Path(target_dir)
+        target_dir.parent.mkdir(parents=True, exist_ok=True)
+        if target_dir.exists():
+            logger.info("Dependency already exists, nothing to do.")
+            return
+        logger.info(f"Downloading and extracting dependency from {url} to {target_dir}")
+        start_time = timer()
+        try:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                download(url, tmp_dir)
+                logger.info(f"Downloaded finished in {timer() - start_time:.2f} seconds.")
+                archive_path = Path(tmp_dir) / url.split("/")[-1]
+                extract_archive(archive_path, target_dir)
+                logger.success(f"Extracted dependency to {target_dir} in {timer() - start_time:.2f} seconds.")
+        except requests.RequestException as e:
+            logger.error(f"Failed to download dependency from {url}: {e}")
+            logger.exception(e)
+        except Exception as e:
+            logger.error(f"Failed to extract dependency from {url} to {target_dir}: {e}")
+            logger.exception(e)
 
-            if target_dir.exists():
-                logger.info(f"Updating existing dependency in: {target_dir}")
-                start_time = timer()
-                try:
-                    repo = Repo(target_dir)
-                    repo.remotes.origin.pull()
-                    logger.success(f"Pulled updates for {name} in {timer() - start_time:.2f}s.")
-                except Exception as e:
-                    logger.error(f"Failed to update dependency at {target_dir}: {e}")
-            else:
-                logger.info(f"Cloning dependency '{name}' into: {target_dir}")
-                start_time = timer()
-                try:
-                    Repo.clone_from(git_url, target_dir)
-                    logger.success(f"Cloned {name} in {timer() - start_time:.2f}s.")
-                except Exception as e:
-                    logger.error(f"Failed to clone dependency from {git_url} to {target_dir}: {e}")
-
-    def _pull(self):
-        pull_start = timer()
-        logger.info("Pulling solver...")
-        o = self._repo.remotes.origin
-        o.pull()
-        logger.info(f"Pulling finished {pull_start - self._start_time:.2f} seconds.")
-
-    def _check_system(self):
-        if not self._config:
-            return True
-        systems = self._config.get("system")
-        return is_system_compatible(systems)
+    def _manage_file_dependency(self, dep, url):
+        start_time = timer()
+        name = url.split("/")[-1].split(".")[0]
+        default_dest = self._repo.get_source_path().parent / "deps" / name
+        target_dir = replace_solver_dir_in_str(dep.get("dir"), str(self._repo.get_source_path())) if dep.get(
+                "dir") else default_dest
+        target_dir = Path(target_dir)
+        target_dir.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            download(url, target_dir)
+            logger.success(f"Downloaded dependency from {url} to {target_dir} in {timer() - start_time:.2f} seconds.")
+        except requests.RequestException as e:
+            logger.error(f"Failed to download dependency from {url}: {e}")
+            logger.exception(e)
+        except Exception as e:
+            logger.error(f"Failed to manage file dependency from {url} to {target_dir}: {e}")
+            logger.exception(e)
 
     def install(self):
         """Main method to install the solver."""
         self._init()
-        self._clone() if self._url.startswith("http") else self._init_repo()
-        self._pull()
         self._resolve_config()
-        if not self._check_system():
-            system_list = ",".join(self._config.get("system")) if isinstance(self._config.get("system"), list) else self._config.get("system")
-            logger.info(f"Current system {platform.system().lower()} is not compatible with the system from {system_list}.")
-            return
+
+        self._raise_for_check_system()
+        self._repo = VersionDirectory(self._path_solver, self._config)
         self._config_strategy.detect_language()
+
         self._manage_dependency()
         self._check()
 
-        build_start = timer()
-        original_ref = self._repo.active_branch.name if not self._repo.head.is_detached else self._repo.head.object.hexsha
-        with ChangeDirectory(self._path_solver):
-            for v in self._config_strategy.versions():
-                try:
-                    logger.info(f"Checking out version '{v['git_tag']}'")
-                    self._repo.git.checkout(v["git_tag"])
-                    need_compile = v.get("executable") is not None and not (
-                            Path(self._path_solver) / v.get('executable')).exists()
 
+        # original_ref = self._repo.active_branch.name if not self._repo.head.is_detached else self._repo.head.object.hexsha
+        with paths.ChangeDirectory(self._path_solver):
+            for v in self._config_strategy.versions():
+                version_timer = timer()
+                logger.info(f"Version '{v['version']}' start ...")
+                try:
+                    logger.info(f"Move to version '{v['version']}'")
+                    self._repo.change_version(get_with_fallback(v, "git_tag", "version"))
+                    need_compile = v.get("executable") is not None and not (
+                            Path(self._repo.get_source_path()) / v.get('executable')).exists() and not self._config.get(
+                        "build", {}).get("per_os", {}).get(normalized_system_name(), {}).get('skip', False)
+                    build_start = timer()
                     if not self._mode_build_strategy.build() and need_compile:
                         logger.error(f"Build failed for version '{v['version']}'. Installation aborted.")
                         break
-
-                    bin_dir = get_solver_bin_dir(self._id, f"{v['version']}-{v['git_tag']}")
+                    logger.info(f"Building completed in {timer() - build_start:.2f} seconds.")
+                    bin_dir = paths.get_bin_dir_of_solver(self._id,
+                                                          f"{v['version']}-{get_with_fallback(v, "git_tag", "version")}")
                     os.makedirs(bin_dir, exist_ok=True)
 
                     if v.get("executable") is None:
@@ -292,32 +326,58 @@ class Installer:
                             f"Please manually copy your binaries into {bin_dir}.")
                         continue
                     executable_path = Path(v['executable'])
-                    result_path = shutil.copy(Path(self._path_solver) / v["executable"], bin_dir / executable_path.name)
+                    result_path = shutil.copy(Path(self._repo.get_source_path()) / v["executable"],
+                                              bin_dir / executable_path.name)
                     logger.success(f"Executable for version '{v['version']}' successfully copied to {result_path}.")
                     if self._config is not None and self._config.get("command") is not None:
                         CACHE[self._id]["versions"][v['version']] = {
-                            "options": self._config["command"]["options"],
+                            "options": self._config["command"].get("options", dict()),
                             "cmd": build_cmd(self._config, bin_dir / executable_path.name),
                             "alias": v.get("alias", list())
                         }
                     logger.debug(executable_path.name)
 
+                    logger.info("Moving files to the binary directory...")
+                    for file in v.get("files", []):
+                        from_path = replace_solver_dir_in_str(file.get("from"), str(self._repo.get_source_path()))
+                        to_path = replace_bin_dir_in_str(file.get("to"), str(bin_dir.absolute()))
+                        logger.info(f"Copying file from '{from_path}' to '{to_path}'")
+                        try:
+                            shutil.copy(from_path, to_path)
+                            logger.success(f"{from_path}....OK")
+                        except Exception as e:
+                            logger.error(f"Failed to move file from '{from_path}' to '{to_path}': {e}")
+                            logger.exception(e)
+
+
                 except OSError as e:
                     logger.error(
                         f"An error occurred when building the version '{v['version']}' of solver {self._solver}")
                     logger.exception(e)
+                except Exception as e:
+                    logger.error("An unexpected error occurred during the installation process.")
+                    logger.exception(e)
+                    logger.error(f"Failed to build version '{v['version']}' of solver {self._solver}.")
                 finally:
-                    logger.info(f"Restoring original Git reference: {original_ref}")
-                    self._repo.git.checkout(original_ref)
-        logger.info(f"Building completed in {timer() - build_start:.2f} seconds.")
+                    logger.info(f"Restoring original repository (if needed)...")
+                    self._repo.restore()
+                    logger.info(f"Version '{v['version']}' end ... {timer() - version_timer:.2f} seconds.")
+
         logger.info("Generating cache of solver...")
         Cache.save_cache(CACHE)
-        logger.info(f"Installation completed in {timer() - self._start_time:.2f} seconds.")
+        logger.info(f"Installation (of all versions) completed in {timer() - self._start_time:.2f} seconds.")
 
-
-def resolve_url(repo, source):
-    """Construct the full URL from a repo namespace and source."""
-    return "https://" + source.value + "/" + repo
+    def _raise_for_check_system(self):
+        """Raise an error if the system check is not compatible."""
+        if self._config is None or "system" not in self._config:
+            return
+        systems = self._config.get("system", "all")
+        if isinstance(systems, str):
+            systems = [systems]
+        if not is_system_compatible(systems):
+            system_list = ",".join(systems) if isinstance(systems, list) else systems
+            raise ValueError(
+                f"Current system {platform.system().lower()} is not compatible with the system from {system_list}.")
 
 
 def fill_parser(parser):
@@ -338,29 +398,54 @@ def fill_parser(parser):
 
 
 def install(args):
-    logger.debug(args)
     """Execute the installation process based on parsed arguments."""
-    if args['url'] is None and args['repo'] is None and args['config'] is None:
-        raise ValueError("--url, --repo, --config cannot be None simultaneously.")
+    logger.debug(args)
+    manage_conflictual_args(args)
 
-    at_most_one_true = [args[k] for k in ['url', 'repo', 'config'] if args[k] is not None]
-    if len(at_most_one_true) > 1:
-        raise ValueError("Can't be more one of these option specified : '--url','--repo','--config'")
     name = args['name']
     id_s = args['id']
     url = args['url']
     config = None
-    if args['config'] is not None and os.path.exists(args['config']):
-        with open(args['config'], 'r') as f:
+
+    config_path = args['config']  # get the config path from args
+    if config_path is None and url is not None and any(
+            [url.endwith(ext) for ext in DEFAULT_EXT]):  # check if url is a config file
+        # if the url is a config file, download it
+        config_path = paths.get_solver_config_dir() / url.split("/")[-1]
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            with open(config_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            logger.info(f"Configuration file downloaded successfully from {url}.")
+        except requests.RequestException as e:
+            logger.error(f"Failed to download configuration file from {url}: {e}")
+            return
+
+    # If a config file is provided, load it
+    if config_path is not None and os.path.exists(config_path):
+        with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
             name = config['name']
             id_s = config['id']
             url = config.get('git', None) or config.get('path', None)
-    if url is None:
+    # Now if url is always None and config is also None, we try to resolve the url from repo and source
+    if url is None and config is None:
         url = resolve_url(args['repo'], args['source'])
 
+    # Now we have either a valid URL or loaded config
     installer = Installer(url, name, id_s, config=config)
     installer.install()
+
+
+def manage_conflictual_args(args):
+    """Ensure that only one of the URL, repo, or config arguments is provided."""
+    keys = ['url', 'repo', 'config']
+    if not at_least_one(args, keys):
+        raise ValueError(",".join(keys) + " cannot be None simultaneously.")
+    if not at_most_one(args, keys):
+        raise ValueError("Can't be more one of these option specified : " + ",".join(keys) + ". ")
 
 
 MAP_COMMAND = {
