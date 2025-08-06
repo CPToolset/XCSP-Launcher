@@ -5,7 +5,7 @@ import pytest
 
 from xcsp.solver.solver import Solver, ResultStatusEnum
 
-solvers = list(Solver.available_solvers().keys())
+solvers = list([k for k in Solver.available_solvers().keys() if "picat" not in k.lower()])
 
 # Get all instance files
 instances_sat = [

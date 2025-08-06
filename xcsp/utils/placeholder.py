@@ -74,13 +74,17 @@ def replace_dir(cmd, dir, key):
     """
     return normalize_placeholders(cmd).replace("{{"+key+"}}", dir)
 
-def replace_core_placeholder(cmd, executable, options):
+def replace_core_placeholder(cmd, executable, bin_dir, options):
     cmds = cmd.split()
     result = []
     for item in cmds:
         r = normalize_placeholders(item)
         if "{{executable}}" in r:
             r = r.replace("{{executable}}", str(executable))
+            result.append(r)
+            continue
+        if "{{bin_dir}}" in r:
+            r = r.replace("{{bin_dir}}", str(bin_dir))
             result.append(r)
             continue
         if "{{options}}" in r:
