@@ -1,0 +1,13 @@
+solvers/org.picat/
+└── 3.8#7
+    ├── source
+    │   ├── doc
+    │   ├── exs
+    │   ├── lib
+    │   ├── LICENSE
+    │   ├── picat
+    │   └── README
+    └── tmp
+        └── picat387_linux64.tar.gz
+
+7 directories, 4 files
