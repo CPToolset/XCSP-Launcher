@@ -24,7 +24,7 @@ from loguru import logger
 
 from xcsp.solver.cache import CACHE
 from xcsp.utils.json import CustomEncoder
-from xcsp.utils.paths import get_system_tools_dir
+import xcsp.utils.paths as paths
 from xcsp.utils.system import kill_process, term_process
 
 ANSWER_PREFIX = "s" + chr(32)
@@ -247,7 +247,6 @@ class Solver:
         command = list(self._command_line)
         for index, elt in enumerate(command):
             if elt == '{{instance}}':
-                logger.debug(f"replace instance in command line by {instance_path}")
                 command[index] = elt.replace("{{instance}}", str(instance_path))
         command.extend(self._args.values())
         command.extend(self._other_options)
@@ -351,7 +350,7 @@ class Solver:
             logger.info("Checking solution....")
             solution_checker_jar = None 
 
-            for st in get_system_tools_dir():
+            for st in paths.get_system_tools_dir():
                 if not st.exists():
                     continue
                 p = st / "xcsp3-solutionChecker-2.5.jar"
@@ -450,8 +449,6 @@ class Solver:
         for k, v in solvers.items():
             for a in v.alias:
                 alias_solvers[f"{v.name.upper()}@{a}"] = v
-        logger.debug(solvers)
-        logger.debug(alias_solvers)
         key = f"{name_solver.upper()}@{version_solver}"
         if key not in solvers and key not in alias_solvers:
             raise ValueError(
