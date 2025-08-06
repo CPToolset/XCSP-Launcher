@@ -69,6 +69,7 @@ class Solver:
             options (dict): Mapping of standard solver options.
             alias (list, optional): List of alternative names for the solver.
         """
+        self._delay = None
         self._is_timeout = False
         self._prefix = None
         self._stderr = sys.stderr
@@ -263,7 +264,8 @@ class Solver:
 
         delay_trigger = None
         if self._time_limit is not None:
-            delay_trigger = threading.Timer(self._time_limit-delay, term_process, args=(process, self._time_limit-delay, self))
+            local_delay = self._delay if self._delay is not None else delay
+            delay_trigger = threading.Timer(self._time_limit-local_delay, term_process, args=(process, self._time_limit-local_delay, self))
             delay_trigger.start()
 
 
@@ -326,6 +328,8 @@ class Solver:
 
             if timeout_trigger is not None:
                 timeout_trigger.cancel()
+            if delay_trigger is not None:
+                delay_trigger.cancel()
 
         except Exception as e:
             logger.exception("An error occurred during solver execution")
@@ -491,6 +495,7 @@ class Solver:
         s = Solver.lookup(name)
         s.set_seed(args.get("seed"))
         s.set_time_limit(args.get("timeout"))
+        s.set_delay(args.get("delay"))
         s.set_collect_intermediate_solutions(args.get("intermediate"))
         s.set_limit_number_of_solutions(args.get("num_solutions"))
 
@@ -552,3 +557,6 @@ class Solver:
         summary_parts.append(f"CPU: {final_cpu_time:.2f}s")
 
         logger.info(" | ".join(summary_parts))
+
+    def set_delay(self, delay:int):
+        self._delay = delay
