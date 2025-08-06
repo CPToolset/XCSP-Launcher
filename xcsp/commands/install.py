@@ -362,8 +362,8 @@ class Installer:
                     logger.info(f"Restoring original repository (if needed)...")
                     self._repo.restore()
                     logger.info(f"Version '{v['version']}' end ... {timer() - version_timer:.2f} seconds.")
-            if not have_latest:
-                list_versions = sort_versions(list(CACHE[self._id]["versions"].keys()))
+            list_versions = sort_versions(list(CACHE[self._id]["versions"].keys()))
+            if not have_latest and len(list_versions)>0:
                 latest = list_versions[-1]
                 logger.debug(list_versions)
                 logger.info(f"No version with alias 'latest' found, setting '{latest}' as latest version.")
