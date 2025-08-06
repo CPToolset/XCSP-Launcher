@@ -124,6 +124,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          draft: true # force draft release to allow manual review before publishing
           prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
           body: |
             ${{steps.github_release.outputs.changelog}}
