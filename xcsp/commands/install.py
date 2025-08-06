@@ -32,6 +32,7 @@ from xcsp.solver.cache import CACHE, Cache
 from xcsp.solver.resolver import resolve_config, DEFAULT_EXT
 import xcsp.utils.paths as paths
 from xcsp.utils.log import unknown_command
+from xcsp.utils.softwarevers import sort_versions
 from xcsp.utils.system import is_system_compatible, normalized_system_name
 from xcsp.utils.versiondir.core import VersionDirectory
 
@@ -123,14 +124,14 @@ class ConfigFileStrategy(ConfigStrategy):
             yield v
 
 
-def build_cmd(config, bin_executable):
+def build_cmd(config, bin_executable, bin_dir):
     result_cmd = []
     if config["command"].get("prefix"):
         result_cmd.extend(replace_placeholder(config["command"]["prefix"]))
 
     template = config["command"]["template"]
     options = config["command"].get("always_include_options")
-    result_cmd.extend(replace_core_placeholder(template, bin_executable, options))
+    result_cmd.extend(replace_core_placeholder(template, bin_executable, bin_dir, options))
     return result_cmd
 
 
@@ -299,7 +300,7 @@ class Installer:
         self._manage_dependency()
         self._check()
 
-
+        have_latest = False
         # original_ref = self._repo.active_branch.name if not self._repo.head.is_detached else self._repo.head.object.hexsha
         with paths.ChangeDirectory(self._path_solver):
             for v in self._config_strategy.versions():
@@ -332,9 +333,10 @@ class Installer:
                     if self._config is not None and self._config.get("command") is not None:
                         CACHE[self._id]["versions"][v['version']] = {
                             "options": self._config["command"].get("options", dict()),
-                            "cmd": build_cmd(self._config, bin_dir / executable_path.name),
+                            "cmd": build_cmd(self._config, bin_dir / executable_path.name, bin_dir),
                             "alias": v.get("alias", list())
                         }
+                        have_latest = have_latest or "latest" in v.get("alias", []) or v.get("version") == "latest" or v.get("git_tag") == "latest"
                     logger.debug(executable_path.name)
 
                     logger.info("Moving files to the binary directory...")
@@ -348,8 +350,6 @@ class Installer:
                         except Exception as e:
                             logger.error(f"Failed to move file from '{from_path}' to '{to_path}': {e}")
                             logger.exception(e)
-
-
                 except OSError as e:
                     logger.error(
                         f"An error occurred when building the version '{v['version']}' of solver {self._solver}")
@@ -362,7 +362,12 @@ class Installer:
                     logger.info(f"Restoring original repository (if needed)...")
                     self._repo.restore()
                     logger.info(f"Version '{v['version']}' end ... {timer() - version_timer:.2f} seconds.")
-
+            if not have_latest:
+                list_versions = sort_versions(list(CACHE[self._id]["versions"].keys()))
+                latest = list_versions[-1]
+                logger.debug(list_versions)
+                logger.info(f"No version with alias 'latest' found, setting '{latest}' as latest version.")
+                CACHE[self._id]["versions"][latest]["alias"].append("latest")
         logger.info("Generating cache of solver...")
         Cache.save_cache(CACHE)
         logger.info(f"Installation (of all versions) completed in {timer() - self._start_time:.2f} seconds.")
