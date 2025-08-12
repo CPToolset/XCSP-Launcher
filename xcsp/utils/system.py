@@ -52,7 +52,7 @@ def kill_process(process, timeout, solver):
 def term_process(process, timeout, solver):
     try:
         if process.is_running():
-            logger.warning(f"Send a SIGTERM to process.")
+            logger.warning(f"Send a SIGTERM to process after {timeout}s.")
             process.terminate()
             logger.info(f"SIGTERM send successfully.")
             solver.set_is_timeout(True)
