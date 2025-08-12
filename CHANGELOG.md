@@ -1,3 +1,9 @@
+## v0.6.1 (2025-08-12)
+
+### Fix
+
+- **builder/build.py**: Fixes a bug with the build part of a solver
+
 ## v0.6.0 (2025-08-06)
 
 ### Feat
