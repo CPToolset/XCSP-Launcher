@@ -122,12 +122,12 @@ class ManualBuildStrategy(BuildStrategy):
 
         build_config = self._config.get("build", {})
         build_steps = get_with_fallback(build_config,"default_steps","build_steps",{}) #build_steps for retro compatibility
+        skip_for_system = False
         if "build_steps" in build_steps:
             logger.warning("Using 'build_steps' in configuration is deprecated, use 'default_steps' instead.")
-
-        build_steps = build_config.get("per_os",{}).get(normalized_system_name(),{}).get("steps",None)
-        skip_for_system = build_config.get("per_os",{}).get(normalized_system_name(),{}).get("skip",None)
-
+        if "per_os" in build_steps:
+            build_steps = build_config.get("per_os",{}).get(normalized_system_name(),{}).get("steps",None)
+            skip_for_system = build_config.get("per_os",{}).get(normalized_system_name(),{}).get("skip",None)
 
         build_command = build_config.get("build_command")
         # 🧹 Normalisation
