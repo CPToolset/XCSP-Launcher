@@ -1,3 +1,9 @@
+## v0.6.3 (2025-08-19)
+
+### Fix
+
+- **commands/install.py**: avoid f-string unmatched error on Python < 3.12
+
 ## v0.6.2 (2025-08-19)
 
 ### Fix
