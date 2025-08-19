@@ -318,7 +318,7 @@ class Installer:
                         break
                     logger.info(f"Building completed in {timer() - build_start:.2f} seconds.")
                     bin_dir = paths.get_bin_dir_of_solver(self._id,
-                                                          f"{v['version']}-{get_with_fallback(v, "git_tag", "version")}")
+                                                          f"{v['version']}-{get_with_fallback(v, 'git_tag', 'version')}")
                     os.makedirs(bin_dir, exist_ok=True)
 
                     if v.get("executable") is None:
