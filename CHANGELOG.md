@@ -1,3 +1,9 @@
+## v0.6.2 (2025-08-19)
+
+### Fix
+
+- **utils/path.py**: Fixes the search path for installation with homebrew
+
 ## v0.6.1 (2025-08-12)
 
 ### Fix

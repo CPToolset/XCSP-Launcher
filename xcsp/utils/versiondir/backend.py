@@ -77,6 +77,8 @@ class GitVersionBackend(Backend):
         logger.info(f"Cloning the solver from {self._meta.get('git')} into {self._repo_path}")
         self._repo = self._repo = Repo(self._repo_path) if os.path.exists(self._repo_path) else Repo.clone_from(
             self._meta.get("git"), self._repo_path, recursive=True)
+        # o = self._repo.remotes.origin
+        # o.pull()
         logger.info(f"Repository cloned in {timer() - start_time:.2f} seconds.")
         self._original_version = self._repo.active_branch.name if not self._repo.head.is_detached else self._repo.head.object.hexsha
         self._current_version = self._original_version

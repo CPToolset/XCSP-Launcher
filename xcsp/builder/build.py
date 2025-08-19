@@ -165,6 +165,7 @@ class ManualBuildStrategy(BuildStrategy):
                         path.chmod(current_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
                 except Exception as e:
                     logger.exception(f"Exception occurred during manual build (chmod on {cmd[0]}): {e}")
+                    logger.error("Current working directory: {}".format(os.getcwd()))
                     return False
 
                 cwd_str = replace_solver_dir_in_str(cwd_raw,str(self._path_solver))
