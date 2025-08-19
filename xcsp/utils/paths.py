@@ -81,7 +81,7 @@ def get_system_tools_dir() -> Iterable[Path]:
     if sys.platform == "win32":
         return [Path(f"C:/Program Files/{__title__}/tools")]  # TODO: Possibly allow custom installation paths?
     elif sys.platform == "darwin":
-        return [Path(f"/usr/local/share/{__title__}/tools"),Path(f'/opt/homebrew/{__title__}/configs')]
+        return [Path(f"/usr/local/share/{__title__}/tools"),Path(f'/opt/homebrew/{__title__}/tools'),Path(f'/opt/homebrew/share/{__title__}/tools')]
     else:
         return [Path(f"/usr/share/{__title__}/tools")]
 
