@@ -327,13 +327,23 @@ class Installer:
                             f"Please manually copy your binaries into {bin_dir}.")
                         continue
                     executable_path = Path(v['executable'])
-                    result_path = shutil.copy(Path(self._repo.get_source_path()) / v["executable"],
-                                              bin_dir / executable_path.name)
-                    logger.success(f"Executable for version '{v['version']}' successfully copied to {result_path}.")
+                    final_placeholder_for_executable= executable_path.name
+                    if executable_path.is_dir():
+                        logger.info(f"Copying content of directory '{executable_path}' to binary directory '{bin_dir}'.")
+                        for item in (Path(self._repo.get_source_path()) / executable_path).iterdir():
+                            dest = bin_dir / item.name
+                            shutil.copy(item.absolute(), dest)
+                        final_placeholder_for_executable = bin_dir
+                        logger.success(f"Directory for version '{v['version']}' successfully copied to {bin_dir}.")
+                    elif executable_path.is_file():
+                        result_path = shutil.copy(Path(self._repo.get_source_path()) / v["executable"],
+                                                  bin_dir / executable_path.name)
+                        logger.success(f"Executable for version '{v['version']}' successfully copied to {result_path}.")
+
                     if self._config is not None and self._config.get("command") is not None:
                         CACHE[self._id]["versions"][v['version']] = {
                             "options": self._config["command"].get("options", dict()),
-                            "cmd": build_cmd(self._config, bin_dir / executable_path.name, bin_dir),
+                            "cmd": build_cmd(self._config, final_placeholder_for_executable , bin_dir),
                             "alias": v.get("alias", list())
                         }
                         have_latest = have_latest or "latest" in v.get("alias", []) or v.get("version") == "latest" or v.get("git_tag") == "latest"
