@@ -7,7 +7,7 @@ logs, solver installations, solver configurations, binaries, and user preference
 import os
 import sys
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, List
 
 from platformdirs import user_cache_dir, user_config_dir, user_data_dir
 from rich.console import Console
@@ -62,7 +62,7 @@ def get_system_config_dir() -> list[Path]:
         return [Path(f"/usr/share/{__title__}/configs")]
 
 
-def get_system_tools_dir() -> Iterable[Path]:
+def get_system_tools_dir() -> List[Path]:
     """Return the system-wide directory for external tools.
 
     This depends on the operating system:
@@ -79,6 +79,10 @@ def get_system_tools_dir() -> Iterable[Path]:
         return [Path(f"/usr/local/share/{__title__}/tools"),Path(f'/opt/homebrew/{__title__}/configs')]
     else:
         return [Path(f"/usr/share/{__title__}/tools")]
+
+def get_user_tools_dir() -> Path:
+    """Return the user-specific directory for external tools."""
+    return Path(user_data_dir(__title__, __title__)) / "tools"
 
 def print_path_summary():
     """Print a summary of important XCSP Launcher paths using Rich."""
@@ -113,5 +117,5 @@ class ChangeDirectory:
         os.chdir(self.saved_path)
 
 # Ensure important directories exist at startup
-for path in [get_cache_dir(), get_solver_install_dir(), get_solver_config_dir(), get_user_preferences_dir()]:
+for path in [get_cache_dir(), get_solver_install_dir(), get_solver_config_dir(), get_user_preferences_dir(), get_user_tools_dir()]:
     path.mkdir(parents=True, exist_ok=True)

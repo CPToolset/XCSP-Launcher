@@ -76,7 +76,27 @@ jobs:
 #          choco pack xcsp-launcher.nuspec
 #          Pop-Location
 #          choco push chocolatey/xcsp-launcher.*.nupkg --api-key ${{ secrets.CHOCOLATEY_API_KEY }} --source="https://push.chocolatey.org/"
+      - name: Rename Linux binary
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+            if [ -f dist/xcsp ]; then
+            cp dist/xcsp dist/xcsp-linux-x86_64
+            fi
 
+      - name: Expose macOS universal binary under dist
+        if: matrix.os == 'macos-latest'
+        run: |
+             mkdir -p dist
+            # dist-universal/xcsp est déjà l’universal (arm64+x86_64) signé+notarisé
+             cp dist-universal/xcsp dist/xcsp-macos-universal
+
+      - name: Rename Windows binary
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+           if [ -f dist/xcsp.exe ]; then
+              cp dist/xcsp.exe dist/xcsp-windows-x86_64.exe
+           fi
       - name: Upload built binaries and packages
         uses: actions/upload-artifact@v4
         with:
