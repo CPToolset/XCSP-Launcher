@@ -39,9 +39,9 @@ class TestSolver:
                 print(f"{solver} is not present in solutions.json file. We skip test.",file=sys.stderr)
                 return
             solution_for_current_instance = solutions[solver][instance.split("/")[-1]]
-            print(f"Test of ace with input {instance}", file=sys.stderr)
+            print(f"Test of {solver} with input {instance}", file=sys.stderr)
             for index, o in enumerate(solution_for_current_instance["solutions"]):
-                solver = Solver.lookup("ace")
+                solver = Solver.lookup(solver)
                 solver.set_limit_number_of_solutions(index + 1)
                 solver.solve(instance)
                 assert solver.objective_value() is not None
@@ -59,7 +59,7 @@ class TestSolver:
         (solver, instance) for solver in solvers for instance in instances_unsat
     ])
     def test_with_xcsp_file_unsat(self, solver, instance):
-        print(f"Test of ace with input {instance}", file=sys.stderr)
+        print(f"Test of {solver} with input {instance}", file=sys.stderr)
         solver = Solver.lookup(solver)
         solver.solve(instance)
         assert solver.objective_value() is None
@@ -69,7 +69,7 @@ class TestSolver:
         (solver, instance) for solver in solvers for instance in instances_unknown
     ])
     def test_with_xcsp_file_unknown(self, solver, instance):
-        print(f"Test of ace with input {instance}", file=sys.stderr)
+        print(f"Test of {solver} with input {instance}", file=sys.stderr)
         solver = Solver.lookup(solver)
         solver.set_time_limit(10)
         solver.solve(instance)

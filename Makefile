@@ -49,39 +49,39 @@ deb: $(DIST_DIR)/$(BIN_NAME)
 	cp package/*.deb .
 	rm -rf package
 
-# Créer une Formula Homebrew à partir du tar.gz
-brew: $(DIST_DIR)/$(BIN_NAME)
-	@echo "Building Homebrew formula..."
-
-	# Générer un tar.gz contenant juste l'exécutable et les configs
-	mkdir -p brew_tmp/bin brew_tmp/share/xcsp-launcher/configs brew_tmp/share/xcsp-launcher/tools
-	cp $(DIST_DIR)/$(BIN_NAME) brew_tmp/bin/xcsp-macos
-	cp $(DIST_DIR)/${BIN_NAME} $(DIST_DIR)/xcsp-macos
-	cp -r configs/* brew_tmp/share/xcsp-launcher/configs/
-	cp xcsp/tools/xcsp3-solutionChecker-2.5.jar brew_tmp/share/xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar
-
-	# Créer archive
-	tar -czvf xcsp-$(VERSION:v%=%)-macos.tar.gz -C brew_tmp .
-
-	{ \
-		sha256=$$(shasum -a 256 xcsp-$(VERSION:v%=%)-macos.tar.gz | awk '{print $$1}'); \
-		url="https://github.com/CPToolset/xcsp-launcher/releases/download/$(VERSION)/xcsp-$(VERSION:v%=%)-macos.tar.gz"; \
-		sed \
-			-e "s|__URL__|$$url|" \
-			-e "s|__SHASUM__|$$sha256|" \
-			.packaging/homebrew/xcsp.rb.template > .packaging/homebrew/xcsp.rb; \
-	}
-
-	# Nettoyer temporaire
-	rm -rf brew_tmp
-
-publish-brew: xcsp-*-macos.tar.gz
-	@echo "Publishing Homebrew Formula..."
-	git clone https://github.com/CPToolset/homebrew-xcsp-launcher.git brew-tap
-	mkdir -p brew-tap/Formula/
-	cp .packaging/homebrew/xcsp.rb brew-tap/Formula/xcsp.rb
-	cd brew-tap && git add Formula/ && git commit -m "Update formula for version $(VERSION)" && git push
-	rm -rf brew-tap
+# # Créer une Formula Homebrew à partir du tar.gz
+# brew: $(DIST_DIR)/$(BIN_NAME)
+# 	@echo "Building Homebrew formula..."
+#
+# 	# Générer un tar.gz contenant juste l'exécutable et les configs
+# 	mkdir -p brew_tmp/bin brew_tmp/share/xcsp-launcher/configs brew_tmp/share/xcsp-launcher/tools
+# 	cp $(DIST_DIR)/$(BIN_NAME) brew_tmp/bin/xcsp-macos
+# 	cp $(DIST_DIR)/${BIN_NAME} $(DIST_DIR)/xcsp-macos
+# 	cp -r configs/* brew_tmp/share/xcsp-launcher/configs/
+# 	cp xcsp/tools/xcsp3-solutionChecker-2.5.jar brew_tmp/share/xcsp-launcher/tools/xcsp3-solutionChecker-2.5.jar
+#
+# 	# Créer archive
+# 	tar -czvf xcsp-$(VERSION:v%=%)-macos.tar.gz -C brew_tmp .
+#
+# 	{ \
+# 		sha256=$$(shasum -a 256 xcsp-$(VERSION:v%=%)-macos.tar.gz | awk '{print $$1}'); \
+# 		url="https://github.com/CPToolset/xcsp-launcher/releases/download/$(VERSION)/xcsp-$(VERSION:v%=%)-macos.tar.gz"; \
+# 		sed \
+# 			-e "s|__URL__|$$url|" \
+# 			-e "s|__SHASUM__|$$sha256|" \
+# 			.packaging/homebrew/xcsp.rb.template > .packaging/homebrew/xcsp.rb; \
+# 	}
+#
+# 	# Nettoyer temporaire
+# 	rm -rf brew_tmp
+#
+# publish-brew: xcsp-*-macos.tar.gz
+# 	@echo "Publishing Homebrew Formula..."
+# 	git clone https://github.com/CPToolset/homebrew-xcsp-launcher.git brew-tap
+# 	mkdir -p brew-tap/Formula/
+# 	cp .packaging/homebrew/xcsp.rb brew-tap/Formula/xcsp.rb
+# 	cd brew-tap && git add Formula/ && git commit -m "Update formula for version $(VERSION)" && git push
+# 	rm -rf brew-tap
 
 pacman: $(DIST_DIR)/$(BIN_NAME)
 	mkdir -p package/usr/bin

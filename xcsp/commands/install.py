@@ -20,6 +20,8 @@ from git import Repo
 from loguru import logger
 from timeit import default_timer as timer
 
+from packaging.version import Version
+
 from xcsp.builder.build import AutoBuildStrategy, ManualBuildStrategy
 from xcsp.builder.check import check_available_builder_for_language, MAP_FILE_LANGUAGE, MAP_LANGUAGE_FILES, MAP_BUILDER
 from xcsp.utils.archive import ALL_ARCHIVE_EXTENSIONS, extract_archive
@@ -135,6 +137,17 @@ def build_cmd(config, bin_executable, bin_dir):
     return result_cmd
 
 
+def keep_only_semver_versions(all_versions):
+    results = []
+    for v in all_versions:
+        try:
+            _ = Version(v)
+            results.append(v)
+        except Exception as e:
+            continue
+    return sort_versions(results)
+
+
 class Installer:
     """Main class responsible for installing a solver from a repository."""
 
@@ -144,7 +157,7 @@ class Installer:
         self._id = id_s
         self._path_solver = None
         self._start_time = timer()
-        self._repo = None
+        self._repo: VersionDirectory = None
         self._config = config
         self._config_strategy = None
         self._mode_build_strategy = None
@@ -222,7 +235,7 @@ class Installer:
     def _manage_git_dependency(self, dep, git_url):
         name = git_url.split("/")[-1].replace(".git", "")
         default_dir = self._path_solver.parent.parent / "deps" / name
-        target_dir = replace_solver_dir_in_str(dep.get("dir"), str(self._repo.get_source_path)) if dep.get(
+        target_dir = replace_solver_dir_in_str(dep.get("dir"), str(self._repo.get_source_path())) if dep.get(
             "dir") else default_dir
         target_dir = Path(target_dir)
         target_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -327,13 +340,26 @@ class Installer:
                             f"Please manually copy your binaries into {bin_dir}.")
                         continue
                     executable_path = Path(v['executable'])
-                    result_path = shutil.copy(Path(self._repo.get_source_path()) / v["executable"],
-                                              bin_dir / executable_path.name)
-                    logger.success(f"Executable for version '{v['version']}' successfully copied to {result_path}.")
+                    final_placeholder_for_executable= executable_path.name
+                    if executable_path.is_dir():
+                        logger.info(f"Copying content of directory '{executable_path}' to binary directory '{bin_dir}'.")
+                        for item in (Path(self._repo.get_source_path()) / executable_path).iterdir():
+                            dest = bin_dir / item.name
+                            shutil.copy(item.absolute(), dest)
+                        final_placeholder_for_executable = bin_dir
+                        logger.success(f"Directory for version '{v['version']}' successfully copied to {bin_dir}.")
+                    elif executable_path.is_file():
+                        result_path = shutil.copy(Path(self._repo.get_source_path()) / v["executable"],
+                                                  bin_dir / executable_path.name)
+                        final_placeholder_for_executable = bin_dir/executable_path.name
+                        logger.success(f"Executable for version '{v['version']}' successfully copied to {result_path}.")
+
                     if self._config is not None and self._config.get("command") is not None:
+                        result_cmd = build_cmd(self._config, final_placeholder_for_executable , bin_dir)
+                        logger.debug(result_cmd)
                         CACHE[self._id]["versions"][v['version']] = {
                             "options": self._config["command"].get("options", dict()),
-                            "cmd": build_cmd(self._config, bin_dir / executable_path.name, bin_dir),
+                            "cmd": build_cmd(self._config, final_placeholder_for_executable , bin_dir),
                             "alias": v.get("alias", list())
                         }
                         have_latest = have_latest or "latest" in v.get("alias", []) or v.get("version") == "latest" or v.get("git_tag") == "latest"
@@ -362,7 +388,8 @@ class Installer:
                     logger.info(f"Restoring original repository (if needed)...")
                     self._repo.restore()
                     logger.info(f"Version '{v['version']}' end ... {timer() - version_timer:.2f} seconds.")
-            list_versions = sort_versions(list(CACHE[self._id]["versions"].keys()))
+            all_versions = list(CACHE[self._id]["versions"].keys())
+            list_versions = keep_only_semver_versions(all_versions)
             if not have_latest and len(list_versions)>0:
                 latest = list_versions[-1]
                 logger.debug(list_versions)
