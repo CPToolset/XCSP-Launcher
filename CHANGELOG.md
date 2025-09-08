@@ -1,3 +1,19 @@
+## v0.7.0 (2025-09-08)
+
+### Feat
+
+- **commands/install.py**: we can use a directory for an executable
+- **install.sh**: Allow to install xcsp-launcher on Home Directory
+
+### Fix
+
+- **commands/install.py**: Fixes a bug that used a relative path instead of an absolute path in the cache file
+- **commands/install.py**: keep only semver version for searching the latest version
+
+### Refactor
+
+- **Makefile**: Comment homebrew part
+
 ## v0.6.3 (2025-08-19)
 
 ### Fix
