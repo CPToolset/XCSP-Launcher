@@ -351,9 +351,12 @@ class Installer:
                     elif executable_path.is_file():
                         result_path = shutil.copy(Path(self._repo.get_source_path()) / v["executable"],
                                                   bin_dir / executable_path.name)
+                        final_placeholder_for_executable = bin_dir/executable_path.name
                         logger.success(f"Executable for version '{v['version']}' successfully copied to {result_path}.")
 
                     if self._config is not None and self._config.get("command") is not None:
+                        result_cmd = build_cmd(self._config, final_placeholder_for_executable , bin_dir)
+                        logger.debug(result_cmd)
                         CACHE[self._id]["versions"][v['version']] = {
                             "options": self._config["command"].get("options", dict()),
                             "cmd": build_cmd(self._config, final_placeholder_for_executable , bin_dir),
