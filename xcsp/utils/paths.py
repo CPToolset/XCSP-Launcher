@@ -27,7 +27,7 @@ def get_solver_config_dir() -> Path:
     """Return the directory where user-specific solver configuration files (.xsc.yaml) are stored."""
     return Path(user_config_dir(__title__, __title__)) / "solvers"
 
-def get_solver_bin_dir(solver: str, version: str) -> Path:
+def get_bin_dir_of_solver(solver: str, version: str) -> Path:
     """Return the directory where compiled solver binaries are stored.
 
     Args:
@@ -37,7 +37,12 @@ def get_solver_bin_dir(solver: str, version: str) -> Path:
     Returns:
         Path: Path to the directory containing binaries for the given solver and version.
     """
-    return Path(user_data_dir(__title__, __title__)) / "bin" / solver / version
+    return get_solver_bin_dir() / solver / version
+
+
+def get_solver_bin_dir():
+    return Path(user_data_dir(__title__, __title__)) / "bin"
+
 
 def get_user_preferences_dir() -> Path:
     """Return the directory for storing user preferences (e.g., config.yaml, settings)."""
@@ -76,7 +81,7 @@ def get_system_tools_dir() -> List[Path]:
     if sys.platform == "win32":
         return [Path(f"C:/Program Files/{__title__}/tools")]  # TODO: Possibly allow custom installation paths?
     elif sys.platform == "darwin":
-        return [Path(f"/usr/local/share/{__title__}/tools"),Path(f'/opt/homebrew/{__title__}/configs')]
+        return [Path(f"/usr/local/share/{__title__}/tools"),Path(f'/opt/homebrew/{__title__}/tools'),Path(f'/opt/homebrew/share/{__title__}/tools')]
     else:
         return [Path(f"/usr/share/{__title__}/tools")]
 
@@ -92,8 +97,9 @@ def print_path_summary():
     table.add_column("Purpose", justify="center")
     table.add_column("Path", justify="center")
 
-    table.add_row("🧱 Solver install dir", str(get_solver_install_dir()))
-    table.add_row("📦 System config dir", str(get_system_config_dir()))
+    table.add_row("🧱 Solver install dir (sources and deps)", str(get_solver_install_dir()))
+    table.add_row("🧱 Solver binary dir (binaries for each version) ", str(get_solver_bin_dir()))
+    table.add_row("📦 System config dir", ", ".join(map(str, get_system_config_dir())))
     table.add_row("🧪 Solver config dir", str(get_solver_config_dir()))
     table.add_row("⚙️ User preferences", str(get_user_preferences_dir()))
     table.add_row("🧠 Cache directory (logs)", str(get_cache_dir()))

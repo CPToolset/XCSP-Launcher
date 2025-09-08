@@ -34,6 +34,7 @@ jobs:
           pip install .
 
       - name: Build Python package
+        if: matrix.os == 'ubuntu-latest'
         run: python -m build
 
       - name: Publish to PyPI
@@ -53,16 +54,69 @@ jobs:
           sudo apt-get install -y ruby ruby-dev build-essential rpm fakeroot tar libarchive-tools
           sudo gem install --no-document fpm
           make deb pacman rpm
-
+      - name: Install Rosetta (if needed)
+        if: matrix.os == 'macos-latest'
+        run: |
+          sudo /usr/sbin/softwareupdate --install-rosetta --agree-to-license || true
+      - name: Build universal binary with lipo (arm64 + x86_64)
+        if: matrix.os == 'macos-latest'
+        run: |
+            mkdir -p dist-universal
+            cp dist/xcsp dist-universal/xcsp-arm64
+            arch -x86_64 pyinstaller --onefile --name xcsp-x86_64 --paths=. bin/main.py
+            cp dist/xcsp-x86_64 dist-universal/xcsp-x86_64
+            lipo -create dist-universal/xcsp-arm64 dist-universal/xcsp-x86_64 -output dist-universal/xcsp
+      - name: Import Apple certificate
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "$CERT_P12_BASE64" | base64 --decode > certificate.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import certificate.p12 -k build.keychain -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "" build.keychain
+        env:
+          CERT_P12_BASE64: ${{ secrets.CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.CERT_PASSWORD }}
+      - name: Sign macOS binary
+        if: matrix.os == 'macos-latest'
+        run: |
+          codesign --timestamp --options runtime \
+            --sign "Developer ID Application" \
+            dist-universal/xcsp
+      - name: Notarize macOS binary with Apple
+        if: matrix.os == 'macos-latest'
+        run: |
+          xcrun notarytool submit dist-universal/xcsp \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PWD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PWD: ${{ secrets.APPLE_APP_SPECIFIC_PWD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Staple notarization ticket
+        if: matrix.os == 'macos-latest'
+        run: |
+          xcrun stapler staple dist-universal/xcsp
+      - name: Package signed universal binary for Homebrew
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p brew_tmp/bin brew_tmp/share/xcsp-launcher/configs brew_tmp/share/xcsp-launcher/tools
+          cp dist-universal/xcsp brew_tmp/bin/xcsp-macos
+          cp -r configs/* brew_tmp/share/xcsp-launcher/configs/
+          cp xcsp/tools/xcsp3-solutionChecker-2.5.jar brew_tmp/share/xcsp-launcher/tools/
+          tar -czvf xcsp-$(git describe --tags --abbrev=0)-macos.tar.gz -C brew_tmp .
       - name: Homebrew (macOS only)
         if: matrix.os == 'macos-latest'
         run: |
-          make brew
+          sha256=$(shasum -a 256 xcsp-$(git describe --tags --abbrev=0)-macos.tar.gz | awk '{print $1}')
+          url="https://github.com/CPToolset/xcsp-launcher/releases/download/$(git describe --tags --abbrev=0)/xcsp-$(git describe --tags --abbrev=0)-macos.tar.gz"
+          sed -e "s|__URL__|$url|" -e "s|__SHASUM__|$sha256|" .packaging/homebrew/xcsp.rb.template > .packaging/homebrew/xcsp.rb
           git clone --quiet https://x-access-token:${{ secrets.XCSP_GITHUB_TOKEN }}@github.com/CPToolset/homebrew-xcsp-launcher.git brew-tap
-          mkdir -p brew-tap/Formula/
           cp .packaging/homebrew/xcsp.rb brew-tap/Formula/xcsp.rb
-          cd brew-tap && git add Formula/ && git commit -m "Update formula for version $(VERSION)" && git push
-          rm -rf brew-tap
+          cd brew-tap && git add Formula/xcsp.rb && git commit -m "Update formula for version $(git describe --tags --abbrev=0)" && git push
         env:
           GITHUB_TOKEN: ${{ secrets.XCSP_GITHUB_TOKEN }}
 
@@ -106,7 +160,7 @@ jobs:
             *.deb
             *.rpm
             *.pkg.tar.*
-            *.tar.gz
+            xcsp-*-macos.tar.gz
             *.snap
             chocolatey/*.nupkg
 
@@ -144,6 +198,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          draft: true # force draft release to allow manual review before publishing
           prerelease: ${{ contains(github.ref_name, 'a') || contains(github.ref_name, 'b') || contains(github.ref_name, 'rc') }}
           body: |
             ${{steps.github_release.outputs.changelog}}

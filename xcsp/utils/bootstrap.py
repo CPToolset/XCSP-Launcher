@@ -8,7 +8,7 @@ and optionally running the bootstrap process to install default solvers.
 import sys
 from loguru import logger
 
-from xcsp.utils.paths import get_solver_install_dir
+import xcsp.utils.paths as paths
 
 
 
@@ -22,7 +22,7 @@ def check_bootstrap():
     which installs default solvers.
 
     """
-    solver_dir = get_solver_install_dir()
+    solver_dir = paths.get_solver_install_dir()
 
     if not solver_dir.exists() or not any(solver_dir.iterdir()):
         logger.info("🚀 First-time setup detected: no solvers found.")

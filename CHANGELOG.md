@@ -1,3 +1,51 @@
+## v0.6.3 (2025-08-19)
+
+### Fix
+
+- **commands/install.py**: avoid f-string unmatched error on Python < 3.12
+
+## v0.6.2 (2025-08-19)
+
+### Fix
+
+- **utils/path.py**: Fixes the search path for installation with homebrew
+
+## v0.6.1 (2025-08-12)
+
+### Fix
+
+- **builder/build.py**: Fixes a bug with the build part of a solver
+
+## v0.6.0 (2025-08-06)
+
+### Feat
+
+- **commandes/install.py**: Compute the latest version based on the version in configuration file
+- **configs/**: updates the submodule
+- **builder/build.py**: Use the new configuration file
+- **builder/check.py**: Add the C language
+
+### Fix
+
+- **commands/install.py**: Fixes a bug when the list of version is empty
+- **utils/placeholder.py**: Replace bin_dir in command_line before generated cache file
+- **commands/solver.py**: Force removing instance when there is an exception
+
+### Refactor
+
+- **commands/solver.py,-utils/bootstrap.py,-main.py**: Some minor change
+- **commands/__init__.py,-commands/install.py**: Big refactoring for installaation of a solver
+- **solver/*.py**: change the import of the paths package
+- **utils/softwarevers.py**: creates some function for managing semantic versionning of solvers
+- **utils/placeholder.py**: Some refactoring in placeholder module
+- **utils/paths.py**: Adds a function for getting the root path for the binaries of solvers
+- **utils/http.py**: utils functions for downloading and HTTP url
+- **utils/dict.py**: Util function for dictionnary
+- **utils/args**: module for managing some constraint on command line arguments
+- **utils/archive.py**: New module for managing the extraction of archive
+- **utils/versiondir**: add package to manage versioned directories from archives or git
+- **system.py**: Add a function "normalized_system_name", new module in utils package
+
 ## v0.5.1 (2025-06-09)
 
 ### Fix

@@ -1,0 +1,6 @@
+bin/org.picat/
+└── 3.8#7-3.8#7
+    ├── picat
+    └── xcsp.pi
+
+2 directories, 2 files
