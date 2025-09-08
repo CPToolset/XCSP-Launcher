@@ -353,12 +353,16 @@ class Solver:
         if check and self._solutions is not None and len(self._solutions["assignments"]) > 0:
             logger.info("Checking solution....")
             solution_checker_jar = None 
-
-            for st in paths.get_system_tools_dir():
+            all_paths = paths.get_system_tools_dir()
+            all_paths.extend([paths.get_user_tools_dir()])
+            for st in all_paths:
+                logger.debug("Searching for solution checker in: " + str(st))
                 if not st.exists():
+                    logger.debug("No solution checker found")
                     continue
                 p = st / "xcsp3-solutionChecker-2.5.jar"
                 if not p.exists():
+                    logger.debug(f"Solution checker jar not found at {p}")
                     continue
                 solution_checker_jar=p
 
