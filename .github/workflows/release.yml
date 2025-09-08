@@ -140,9 +140,9 @@ jobs:
       - name: Expose macOS universal binary under dist
         if: matrix.os == 'macos-latest'
         run: |
-             mkdir -p dist
+            mkdir -p dist
             # dist-universal/xcsp est déjà l’universal (arm64+x86_64) signé+notarisé
-             cp dist-universal/xcsp dist/xcsp-macos-universal
+            cp dist-universal/xcsp dist/xcsp-macos-universal
 
       - name: Rename Windows binary
         if: matrix.os == 'windows-latest'
